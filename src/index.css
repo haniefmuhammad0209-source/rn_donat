@@ -1,0 +1,119 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-cream dark:bg-gray-900 text-gray-800 dark:text-gray-100;
+    font-feature-settings: 'kern' 1, 'liga' 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  * {
+    @apply transition-colors duration-200;
+  }
+
+  /* Scrollbar custom */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-gray-300 dark:bg-gray-600 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-chocolate/60; }
+}
+
+@layer components {
+  /* Glassmorphism card */
+  .glass {
+    @apply bg-white/70 dark:bg-gray-800/70 backdrop-blur-md border border-white/20 dark:border-gray-700/50;
+  }
+
+  .glass-dark {
+    @apply bg-black/20 backdrop-blur-md border border-white/10;
+  }
+
+  /* Premium button */
+  .btn-primary {
+    @apply bg-chocolate text-white px-6 py-3 rounded-full font-semibold
+           hover:bg-dark-chocolate active:scale-95
+           transition-all duration-200 shadow-lg shadow-chocolate/20
+           hover:shadow-xl hover:shadow-chocolate/30;
+  }
+
+  .btn-outline {
+    @apply border-2 border-chocolate text-chocolate px-6 py-3 rounded-full font-semibold
+           hover:bg-chocolate hover:text-white active:scale-95
+           transition-all duration-200;
+  }
+
+  /* Card hover effect */
+  .card-hover {
+    @apply transition-all duration-300
+           hover:-translate-y-2 hover:shadow-xl;
+  }
+
+  /* Gradient text */
+  .text-gradient {
+    @apply bg-gradient-to-r from-chocolate to-pastel-pink bg-clip-text text-transparent;
+  }
+
+  /* Section divider */
+  .divider {
+    @apply w-24 h-1 bg-gradient-to-r from-pastel-pink to-chocolate rounded-full mx-auto;
+  }
+
+  /* Input field */
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600
+           bg-white dark:bg-gray-800 text-gray-800 dark:text-white
+           outline-none focus:border-chocolate dark:focus:border-pastel-pink
+           transition-colors text-sm placeholder:text-gray-400;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+}
+
+@layer utilities {
+  .text-shadow {
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .text-shadow-lg {
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Shimmer animation untuk skeleton */
+  .shimmer {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* Float animation */
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  /* Glow effect */
+  .glow-chocolate {
+    box-shadow: 0 0 20px rgba(139, 69, 19, 0.3);
+  }
+}
