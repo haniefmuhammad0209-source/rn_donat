@@ -170,15 +170,15 @@ const Home = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 1.2 }}
                   whileHover={{ scale: 1.1, rotate: -5 }}
-                  className="absolute -bottom-6 -right-6 bg-gradient-to-br from-white to-cream dark:from-gray-800 dark:to-gray-700 p-5 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-600"
+                  className="absolute -bottom-6 -right-6 z-20 bg-gradient-to-br from-white to-cream dark:from-gray-800 dark:to-gray-700 p-5 rounded-3xl shadow-2xl border-2 border-gray-200 dark:border-gray-600"
                 >
                   <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-pink-500 rounded-2xl flex items-center justify-center">
-                      <FiHeart className="w-6 h-6 text-white fill-current" />
+                    <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg">
+                      <FiHeart className="w-6 h-6 text-white fill-current drop-shadow-md" />
                     </div>
                     <div>
-                      <div className="font-bold text-chocolate dark:text-pastel-pink text-lg">Best Seller</div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Donat Coklat</div>
+                      <div className="font-bold text-chocolate dark:text-pastel-pink text-lg drop-shadow-sm">Best Seller</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400 font-semibold">Donat Mix</div>
                     </div>
                   </div>
                 </motion.div>
