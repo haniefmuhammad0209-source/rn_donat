@@ -29,10 +29,18 @@ const Home = () => {
       <Navbar />
       
       {/* Hero Section */}
-      <section id="home" className="relative min-h-screen flex items-center bg-gradient-to-br from-cream via-pastel-pink/20 to-light-brown/20 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/image/an_aesthetic_high_end_stack_of_gourmet_donuts_with_mixed_flavors_one_with_pink.png')] bg-cover bg-center opacity-10 dark:opacity-5"></div>
+      <section id="home" className="relative min-h-screen flex items-center bg-gradient-to-br from-warm-cream via-peach/30 to-rose-gold/20 dark:from-gray-900 dark:via-espresso/50 dark:to-gray-900 overflow-hidden">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-20 left-10 w-72 h-72 bg-pastel-pink/10 rounded-full blur-3xl animate-float" />
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-caramel/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+          <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-rose-gold/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }} />
+        </div>
+        
+        <div className="absolute inset-0 bg-[url('/image/an_aesthetic_high_end_stack_of_gourmet_donuts_with_mixed_flavors_one_with_pink.png')] bg-cover bg-center opacity-5 dark:opacity-[0.02]"></div>
+        
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <motion.div
               initial={{ opacity: 0, x: -50 }}
               animate={{ opacity: 1, x: 0 }}
@@ -42,26 +50,29 @@ const Home = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="inline-block bg-chocolate/10 text-chocolate px-4 py-2 rounded-full text-sm font-medium mb-6"
+                whileHover={{ scale: 1.05 }}
+                className="inline-block bg-gradient-to-r from-rose-gold/20 to-caramel/20 backdrop-blur-sm border border-rose-gold/30 text-chocolate dark:text-pastel-pink px-5 py-2.5 rounded-full text-sm font-semibold mb-6 shadow-lg"
               >
-                🍩 RN Donat
+                🍩 RN Donat Premium
               </motion.div>
               
               <motion.h1
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="text-5xl md:text-7xl font-bold text-chocolate font-elegant mb-6 leading-tight"
+                className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-chocolate via-caramel to-espresso bg-clip-text text-transparent dark:from-pastel-pink dark:via-rose-gold dark:to-white font-elegant mb-6 leading-tight"
               >
                 Kelezatan Donat
-                <span className="text-pastel-pink block">RN Donat</span>
+                <span className="block bg-gradient-to-r from-pastel-pink to-rose-gold bg-clip-text text-transparent dark:from-white dark:to-pastel-pink">
+                  RN Donat
+                </span>
               </motion.h1>
               
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
-                className="text-xl text-gray-600 dark:text-gray-300 mb-8 leading-relaxed"
+                className="text-xl text-gray-600 dark:text-gray-300 mb-10 leading-relaxed font-medium"
               >
                 Nikmati donat dengan kualitas terbaik, dibuat dengan bahan-bahan pilihan dan cinta. 
                 1 kotak berisi 6 donat hanya Rp 15.000. Pilih topping sesuai selera: meses, oreo, kacang, atau keju.
@@ -75,19 +86,20 @@ const Home = () => {
               >
                 <motion.a
                   href="#menu"
-                  whileHover={{ scale: 1.05 }}
+                  whileHover={{ scale: 1.05, boxShadow: '0 20px 40px -10px rgba(139, 69, 19, 0.4)' }}
                   whileTap={{ scale: 0.95 }}
-                  className="bg-chocolate text-white px-8 py-4 rounded-full font-semibold hover:bg-dark-chocolate transition-colors duration-200 flex items-center space-x-2"
+                  className="bg-gradient-to-r from-chocolate to-caramel text-white px-10 py-4 rounded-full font-bold hover:shadow-2xl transition-all duration-300 flex items-center space-x-2 relative overflow-hidden group"
                 >
-                  <span>Lihat Menu</span>
-                  <FiArrowRight className="w-5 h-5" />
+                  <span className="relative z-10">Lihat Menu</span>
+                  <FiArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
+                  <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-500" />
                 </motion.a>
                 
                 <motion.a
                   href="#about"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="bg-white text-chocolate px-8 py-4 rounded-full font-semibold hover:bg-cream transition-colors duration-200 border-2 border-chocolate"
+                  className="bg-white dark:bg-gray-800 text-chocolate dark:text-pastel-pink px-10 py-4 rounded-full font-bold hover:bg-cream dark:hover:bg-gray-700 transition-all duration-300 border-2 border-chocolate dark:border-pastel-pink shadow-lg hover:shadow-xl"
                 >
                   Tentang Kami
                 </motion.a>
@@ -97,23 +109,34 @@ const Home = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1 }}
-                className="flex items-center space-x-8 mt-12"
+                className="flex items-center space-x-10 mt-14"
               >
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-chocolate">500+</div>
-                  <div className="text-gray-600 dark:text-gray-400 text-sm">Pelanggan</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-chocolate">4.9</div>
-                  <div className="text-gray-600 dark:text-gray-400 text-sm flex items-center justify-center">
+                <motion.div 
+                  whileHover={{ scale: 1.1 }}
+                  className="text-center"
+                >
+                  <div className="text-4xl font-bold bg-gradient-to-r from-chocolate to-caramel bg-clip-text text-transparent">500+</div>
+                  <div className="text-gray-600 dark:text-gray-400 text-sm font-medium mt-1">Pelanggan</div>
+                </motion.div>
+                <div className="w-px h-12 bg-gray-300 dark:bg-gray-600" />
+                <motion.div 
+                  whileHover={{ scale: 1.1 }}
+                  className="text-center"
+                >
+                  <div className="text-4xl font-bold bg-gradient-to-r from-chocolate to-caramel bg-clip-text text-transparent">4.9</div>
+                  <div className="text-gray-600 dark:text-gray-400 text-sm flex items-center justify-center font-medium mt-1">
                     <FiStar className="w-4 h-4 fill-current text-yellow-500 mr-1" />
                     Rating
                   </div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-chocolate">6+</div>
-                  <div className="text-gray-600 dark:text-gray-400 text-sm">Varian Rasa</div>
-                </div>
+                </motion.div>
+                <div className="w-px h-12 bg-gray-300 dark:bg-gray-600" />
+                <motion.div 
+                  whileHover={{ scale: 1.1 }}
+                  className="text-center"
+                >
+                  <div className="text-4xl font-bold bg-gradient-to-r from-chocolate to-caramel bg-clip-text text-transparent">6+</div>
+                  <div className="text-gray-600 dark:text-gray-400 text-sm font-medium mt-1">Varian Rasa</div>
+                </motion.div>
               </motion.div>
             </motion.div>
 
@@ -125,36 +148,37 @@ const Home = () => {
             >
               <motion.div
                 animate={{
-                  y: [0, -20, 0],
+                  y: [0, -25, 0],
                 }}
                 transition={{
-                  duration: 4,
+                  duration: 5,
                   repeat: Infinity,
                   ease: "easeInOut",
                 }}
                 className="relative"
               >
-                <img
+                <div className="absolute inset-0 bg-gradient-to-br from-pastel-pink/20 to-caramel/20 rounded-[3rem] blur-3xl animate-glow" />
+                <motion.img
                   src="/image/an_aesthetic_high_end_stack_of_gourmet_donuts_with_mixed_flavors_one_with_pink.png"
                   alt="Premium Donut"
-                  className="w-full max-w-lg mx-auto rounded-3xl shadow-2xl"
+                  whileHover={{ scale: 1.05, rotate: 2 }}
+                  transition={{ duration: 0.5 }}
+                  className="w-full max-w-lg mx-auto rounded-[3rem] shadow-2xl relative z-10 border-4 border-white/50 dark:border-gray-700/50"
                 />
                 <motion.div
-                  animate={{
-                    scale: [1, 1.1, 1],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                  className="absolute -bottom-4 -right-4 bg-white p-4 rounded-2xl shadow-xl"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 1.2 }}
+                  whileHover={{ scale: 1.1, rotate: -5 }}
+                  className="absolute -bottom-6 -right-6 bg-gradient-to-br from-white to-cream dark:from-gray-800 dark:to-gray-700 p-5 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-600"
                 >
-                  <div className="flex items-center space-x-2">
-                    <FiHeart className="w-6 h-6 text-red-500 fill-current" />
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-pink-500 rounded-2xl flex items-center justify-center">
+                      <FiHeart className="w-6 h-6 text-white fill-current" />
+                    </div>
                     <div>
-                      <div className="font-bold text-chocolate">Best Seller</div>
-                      <div className="text-sm text-gray-600">Donat Coklat</div>
+                      <div className="font-bold text-chocolate dark:text-pastel-pink text-lg">Best Seller</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Donat Coklat</div>
                     </div>
                   </div>
                 </motion.div>
@@ -165,21 +189,39 @@ const Home = () => {
       </section>
 
       {/* Menu Section */}
-      <section id="menu" className="py-20 bg-white dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="menu" className="py-24 bg-gradient-to-b from-white to-warm-cream dark:from-gray-900 dark:to-gray-800 relative overflow-hidden">
+        {/* Background decoration */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-pastel-pink/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-caramel/5 rounded-full blur-3xl" />
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-4xl md:text-5xl font-bold text-chocolate font-elegant mb-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              className="inline-block mb-4"
+            >
+              <span className="text-5xl">🍩</span>
+            </motion.div>
+            <h2 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-chocolate via-caramel to-espresso bg-clip-text text-transparent dark:from-pastel-pink dark:via-rose-gold dark:to-white font-elegant mb-6">
               Menu Donat Kami
             </h2>
-            <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg">
+            <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg font-medium leading-relaxed">
               Pilih dari berbagai varian donat premium yang lezat dan menggugah selera
             </p>
-            <div className="w-24 h-1 bg-gradient-to-r from-pastel-pink to-chocolate mx-auto mt-6 rounded-full"></div>
+            <motion.div 
+              initial={{ width: 0 }}
+              whileInView={{ width: 120 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+              className="h-1.5 bg-gradient-to-r from-pastel-pink via-rose-gold to-caramel mx-auto mt-8 rounded-full"
+            />
           </motion.div>
 
         {/* Products Grid */}
@@ -187,9 +229,15 @@ const Home = () => {
             {productsLoading ? (
               <ProductGridSkeleton count={4} />
             ) : products.length === 0 ? (
-              <div className="col-span-4 text-center py-16 text-gray-400">
-                <div className="text-5xl mb-4">🍩</div>
-                <p className="font-medium">Menu belum tersedia</p>
+              <div className="col-span-4 text-center py-20">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="text-7xl mb-6 filter grayscale"
+                >
+                  🍩
+                </motion.div>
+                <p className="font-semibold text-gray-400 dark:text-gray-500 text-lg">Menu belum tersedia</p>
               </div>
             ) : (
               products.map((product) => (
@@ -250,38 +298,78 @@ const Home = () => {
                 dan perhatian terhadap detail.
               </p>
 
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 gap-5">
                 <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  className="bg-white dark:bg-gray-700 p-6 rounded-2xl shadow-lg text-center"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.1 }}
+                  whileHover={{ y: -5, boxShadow: '0 20px 40px -10px rgba(139, 69, 19, 0.2)' }}
+                  className="bg-gradient-to-br from-white to-warm-cream dark:from-gray-700 dark:to-gray-800 p-6 rounded-3xl shadow-lg text-center border border-gray-100 dark:border-gray-600 group"
                 >
-                  <div className="text-3xl mb-2">🥐</div>
-                  <div className="font-bold text-chocolate">Bahan Premium</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Kualitas terbaik</div>
+                  <motion.div 
+                    className="text-4xl mb-3"
+                    whileHover={{ scale: 1.2, rotate: 10 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    🥐
+                  </motion.div>
+                  <div className="font-bold text-chocolate dark:text-pastel-pink group-hover:text-caramel transition-colors">Bahan Premium</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">Kualitas terbaik</div>
                 </motion.div>
                 <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  className="bg-white dark:bg-gray-700 p-6 rounded-2xl shadow-lg text-center"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.2 }}
+                  whileHover={{ y: -5, boxShadow: '0 20px 40px -10px rgba(139, 69, 19, 0.2)' }}
+                  className="bg-gradient-to-br from-white to-warm-cream dark:from-gray-700 dark:to-gray-800 p-6 rounded-3xl shadow-lg text-center border border-gray-100 dark:border-gray-600 group"
                 >
-                  <div className="text-3xl mb-2">💝</div>
-                  <div className="font-bold text-chocolate">Dibuat dengan Cinta</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Penuh perhatian</div>
+                  <motion.div 
+                    className="text-4xl mb-3"
+                    whileHover={{ scale: 1.2, rotate: 10 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    💝
+                  </motion.div>
+                  <div className="font-bold text-chocolate dark:text-pastel-pink group-hover:text-caramel transition-colors">Dibuat dengan Cinta</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">Penuh perhatian</div>
                 </motion.div>
                 <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  className="bg-white dark:bg-gray-700 p-6 rounded-2xl shadow-lg text-center"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.3 }}
+                  whileHover={{ y: -5, boxShadow: '0 20px 40px -10px rgba(139, 69, 19, 0.2)' }}
+                  className="bg-gradient-to-br from-white to-warm-cream dark:from-gray-700 dark:to-gray-800 p-6 rounded-3xl shadow-lg text-center border border-gray-100 dark:border-gray-600 group"
                 >
-                  <div className="text-3xl mb-2">⚡</div>
-                  <div className="font-bold text-chocolate">Cepat Segar</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Selalu fresh</div>
+                  <motion.div 
+                    className="text-4xl mb-3"
+                    whileHover={{ scale: 1.2, rotate: 10 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    ⚡
+                  </motion.div>
+                  <div className="font-bold text-chocolate dark:text-pastel-pink group-hover:text-caramel transition-colors">Cepat Segar</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">Selalu fresh</div>
                 </motion.div>
                 <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  className="bg-white dark:bg-gray-700 p-6 rounded-2xl shadow-lg text-center"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.4 }}
+                  whileHover={{ y: -5, boxShadow: '0 20px 40px -10px rgba(139, 69, 19, 0.2)' }}
+                  className="bg-gradient-to-br from-white to-warm-cream dark:from-gray-700 dark:to-gray-800 p-6 rounded-3xl shadow-lg text-center border border-gray-100 dark:border-gray-600 group"
                 >
-                  <div className="text-3xl mb-2">💰</div>
-                  <div className="font-bold text-chocolate">Harga Terjangkau</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Ramah kantong</div>
+                  <motion.div 
+                    className="text-4xl mb-3"
+                    whileHover={{ scale: 1.2, rotate: 10 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    💰
+                  </motion.div>
+                  <div className="font-bold text-chocolate dark:text-pastel-pink group-hover:text-caramel transition-colors">Harga Terjangkau</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">Ramah kantong</div>
                 </motion.div>
               </div>
               <div className="mt-6">

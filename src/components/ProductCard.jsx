@@ -86,57 +86,86 @@ const ProductCard = memo(({ product, storeIsOpen = true, nextOpenText = '' }) =>
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        whileHover={{ y: -8 }}
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden group"
+        whileHover={{ y: -12, boxShadow: '0 25px 50px -12px rgba(139, 69, 19, 0.25)' }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
+        className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg overflow-hidden group relative border border-gray-100 dark:border-gray-700"
       >
-        <div className="relative h-64 overflow-hidden">
-          <img
+        {/* Gradient overlay on hover */}
+        <div className="absolute inset-0 bg-gradient-to-br from-pastel-pink/0 to-chocolate/0 group-hover:from-pastel-pink/5 group-hover:to-chocolate/5 transition-all duration-500 pointer-events-none z-10" />
+        
+        <div className="relative h-64 overflow-hidden bg-gradient-to-br from-warm-cream to-peach dark:from-gray-700 dark:to-gray-600">
+          <motion.img
             src={product.image}
             alt={product.name}
             loading="lazy"
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+            whileHover={{ scale: 1.15, rotate: 2 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="w-full h-full object-cover"
           />
+          {/* Shimmer effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-shimmer bg-[length:200%_100%] transition-opacity duration-700" />
+          
+          {/* Badges with higher z-index to prevent overlap */}
           {product.bestseller && (
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
-              className="absolute top-4 left-4 bg-chocolate text-white px-3 py-1 rounded-full text-sm font-medium">
-              Bestseller
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }} 
+              animate={{ opacity: 1, x: 0 }}
+              className="absolute top-4 left-4 z-30 bg-gradient-to-r from-rose-gold to-caramel text-white px-4 py-2 rounded-full text-xs font-bold shadow-xl backdrop-blur-md flex items-center space-x-1.5 border border-white/20"
+            >
+              <FiStar className="w-3.5 h-3.5 fill-current drop-shadow-sm" />
+              <span className="drop-shadow-sm">Bestseller</span>
             </motion.div>
           )}
-          <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium text-chocolate">
+          <div className="absolute top-4 right-4 z-30 bg-white dark:bg-gray-800 backdrop-blur-md px-4 py-2 rounded-full text-xs font-bold text-chocolate dark:text-pastel-pink shadow-xl border-2 border-gray-100 dark:border-gray-700">
             {product.category}
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-6 relative z-20">
           <div className="flex items-start justify-between mb-2">
-            <h3 className="text-xl font-bold text-gray-800 dark:text-white font-elegant">{product.name}</h3>
-            <div className="flex items-center space-x-1 text-yellow-500">
-              <FiStar className="w-4 h-4 fill-current" />
-              <span className="text-sm font-medium">{product.rating}</span>
-            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white font-elegant group-hover:text-chocolate dark:group-hover:text-pastel-pink transition-colors duration-300">
+              {product.name}
+            </h3>
+            <motion.div 
+              whileHover={{ scale: 1.1, rotate: 5 }}
+              className="flex items-center space-x-1 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 px-2.5 py-1.5 rounded-full border border-yellow-200 dark:border-yellow-800"
+            >
+              <FiStar className="w-3.5 h-3.5 fill-current" />
+              <span className="text-xs font-bold">{product.rating}</span>
+            </motion.div>
           </div>
-          <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">{product.description}</p>
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-2xl font-bold text-chocolate">{formatRupiah(product.price)}</div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">{DONAT_PER_BOX} donat/kotak</div>
+          <p className="text-gray-600 dark:text-gray-400 text-sm mb-5 line-clamp-2 leading-relaxed">{product.description}</p>
+          <div className="flex items-end justify-between gap-3">
+            <div className="flex-shrink-0">
+              <div className="text-2xl font-extrabold text-chocolate dark:text-rose-gold">
+                {formatRupiah(product.price)}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-medium">{DONAT_PER_BOX} donat/kotak</div>
             </div>
             <motion.button
               onClick={openModal}
               disabled={!storeIsOpen}
-              whileHover={storeIsOpen ? { scale: 1.05 } : {}}
-              whileTap={storeIsOpen ? { scale: 0.95 } : {}}
+              whileHover={storeIsOpen ? { scale: 1.08, boxShadow: '0 10px 20px -5px rgba(139, 69, 19, 0.4)' } : {}}
+              whileTap={storeIsOpen ? { scale: 0.92 } : {}}
               title={!storeIsOpen ? nextOpenText : ''}
-              className={`px-4 py-2.5 rounded-full font-medium transition-colors duration-200 flex items-center space-x-2 text-sm ${
+              className={`px-6 py-3 rounded-full font-bold transition-all duration-300 flex items-center space-x-2 text-sm relative overflow-hidden flex-shrink-0 shadow-md ${
                 storeIsOpen
                   ? addedToCart
-                    ? 'bg-green-500 text-white'
-                    : 'bg-chocolate text-white hover:bg-dark-chocolate cursor-pointer'
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg'
+                    : 'bg-chocolate dark:bg-caramel text-white hover:bg-dark-chocolate dark:hover:bg-chocolate hover:shadow-xl cursor-pointer'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-500 cursor-not-allowed'
               }`}
             >
               {storeIsOpen ? <FiShoppingCart className="w-4 h-4" /> : <FiClock className="w-4 h-4" />}
-              <span>{storeIsOpen ? (addedToCart ? 'Ditambahkan!' : 'Pesan') : 'Tutup'}</span>
+              <span className="font-bold">{storeIsOpen ? (addedToCart ? 'Ditambahkan!' : 'Pesan') : 'Tutup'}</span>
+              {storeIsOpen && !addedToCart && (
+                <motion.div 
+                  className="absolute inset-0 bg-white/20"
+                  initial={{ x: '-100%' }}
+                  whileHover={{ x: '100%' }}
+                  transition={{ duration: 0.6 }}
+                />
+              )}
             </motion.button>
           </div>
         </div>

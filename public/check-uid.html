@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check Admin UID - RN Donat</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #8B4513;
+            margin-bottom: 20px;
+        }
+        .info-box {
+            background: #f9f9f9;
+            border-left: 4px solid #8B4513;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        .uid-box {
+            background: #fffbf0;
+            border: 2px solid #8B4513;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        .status.admin {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.not-admin {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        button {
+            background: #8B4513;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px 10px 0;
+        }
+        button:hover {
+            background: #6d3410;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Check Admin UID</h1>
+        
+        <div class="info-box">
+            <strong>Info:</strong> Halaman ini untuk mengecek apakah akun Google kamu terdaftar sebagai admin di sistem RN Donat.
+        </div>
+
+        <div id="loading" class="loading">
+            Loading Firebase...
+        </div>
+
+        <div id="content" style="display: none;">
+            <div id="not-logged-in">
+                <p>Kamu belum login. Silakan login dengan akun Google terlebih dahulu.</p>
+                <button id="login-btn">Login dengan Google</button>
+            </div>
+
+            <div id="logged-in" style="display: none;">
+                <h3>✅ Login Berhasil</h3>
+                
+                <div class="info-box">
+                    <strong>Email:</strong> <span id="user-email"></span>
+                </div>
+
+                <div class="uid-box">
+                    <strong>UID Kamu:</strong><br>
+                    <span id="user-uid"></span>
+                </div>
+
+                <div id="admin-status"></div>
+
+                <h3>Admin UIDs yang Terdaftar:</h3>
+                <div class="uid-box" id="admin-uids"></div>
+
+                <h3>Instruksi:</h3>
+                <div class="info-box">
+                    <ol>
+                        <li>Copy UID kamu di atas</li>
+                        <li>Buka file <code>src/utils/constants.js</code></li>
+                        <li>Tambahkan UID kamu ke array <code>ADMIN_UIDS</code></li>
+                        <li>Deploy ulang aplikasi</li>
+                        <li>Refresh halaman admin dan coba lagi</li>
+                    </ol>
+                </div>
+
+                <button id="copy-uid-btn">📋 Copy UID</button>
+                <button id="logout-btn">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        // Firebase config dari .env
+        const firebaseConfig = {
+            apiKey: "AIzaSyD7JYBe8OcvFAUpzB0E6g8NfAhW3iFLWUQ",
+            authDomain: "rn-donat-shop.firebaseapp.com",
+            projectId: "rn-donat-shop",
+            storageBucket: "rn-donat-shop.firebasestorage.app",
+            messagingSenderId: "589542823688",
+            appId: "1:589542823688:web:bc3ffe27df50fc38ca8cf9",
+            measurementId: "G-QE80T57TK0"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        const ADMIN_UIDS = [
+            'QHS8fA0mGEYV4aayfJ0DFVVRshT2',
+            'QHS0fA0mGEYV4aayfJ0DFVVRshT2'
+        ];
+
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('content').style.display = 'block';
+
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                showLoggedIn(user);
+            } else {
+                showNotLoggedIn();
+            }
+        });
+
+        function showNotLoggedIn() {
+            document.getElementById('not-logged-in').style.display = 'block';
+            document.getElementById('logged-in').style.display = 'none';
+        }
+
+        function showLoggedIn(user) {
+            document.getElementById('not-logged-in').style.display = 'none';
+            document.getElementById('logged-in').style.display = 'block';
+
+            document.getElementById('user-email').textContent = user.email;
+            document.getElementById('user-uid').textContent = user.uid;
+
+            const isAdmin = ADMIN_UIDS.includes(user.uid);
+            const statusDiv = document.getElementById('admin-status');
+            
+            if (isAdmin) {
+                statusDiv.className = 'status admin';
+                statusDiv.innerHTML = '✅ <strong>Kamu sudah terdaftar sebagai admin!</strong><br>Seharusnya bisa simpan stok. Jika masih error, coba hard refresh (Ctrl+Shift+R).';
+            } else {
+                statusDiv.className = 'status not-admin';
+                statusDiv.innerHTML = '❌ <strong>Kamu BUKAN admin!</strong><br>UID kamu tidak ada di ADMIN_UIDS. Tambahkan UID kamu ke <code>src/utils/constants.js</code> untuk jadi admin.';
+            }
+
+            const adminUidsDiv = document.getElementById('admin-uids');
+            adminUidsDiv.innerHTML = ADMIN_UIDS.map((uid, i) => `${i + 1}. ${uid}`).join('<br>');
+        }
+
+        document.getElementById('login-btn').addEventListener('click', async () => {
+            const provider = new GoogleAuthProvider();
+            try {
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                alert('Login gagal: ' + error.message);
+            }
+        });
+
+        document.getElementById('copy-uid-btn').addEventListener('click', () => {
+            const uid = document.getElementById('user-uid').textContent;
+            navigator.clipboard.writeText(uid).then(() => {
+                alert('✅ UID berhasil di-copy ke clipboard!');
+            });
+        });
+
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            signOut(auth);
+        });
+    </script>
+</body>
+</html>

@@ -48,14 +48,13 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Stock — read public (customer bisa baca), write admin only
-    // Untuk reduceStock (increment), gunakan update yang diizinkan untuk semua
+    // Stock — PENTING: Collection untuk stock donat polos
     match /stock/{docId} {
       allow read: if true;
-      // Admin bisa create, update, delete
-      allow create, delete: if isAdmin();
-      // Update diizinkan untuk semua (untuk reduceStock saat order dibuat)
-      allow update: if true;
+      // Admin bisa create, update, delete (semua operasi write)
+      allow write: if isAdmin();
+      // Update (reduceStock) diizinkan untuk authenticated users
+      allow update: if request.auth != null;
     }
   }
 }

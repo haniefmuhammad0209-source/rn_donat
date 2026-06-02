@@ -1,0 +1,94 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============================================
+    // FUNCTION: Check if user is admin
+    // ============================================
+    function isAdmin() {
+      return request.auth != null && request.auth.uid in [
+        'QHS8fA0mGEYV4aayfJ0DFVVRshT2',
+        'QHS0fA0mGEYV4aayfJ0DFVVRshT2'
+      ];
+    }
+
+    // ============================================
+    // COLLECTION: testimonials
+    // ============================================
+    // - Read: Public (semua orang bisa baca)
+    // - Create: Authenticated users (harus login)
+    // - Delete: Admin only
+    match /testimonials/{docId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.text is string
+        && request.resource.data.text.size() >= 10
+        && request.resource.data.rating is number
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5;
+      allow delete: if isAdmin();
+    }
+
+    // ============================================
+    // COLLECTION: products
+    // ============================================
+    // - Read: Public (semua orang bisa baca)
+    // - Write: Admin only (create, update, delete)
+    match /products/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ============================================
+    // COLLECTION: orders
+    // ============================================
+    // - Read: Admin only
+    // - Create: Public (siapapun bisa order)
+    // - Update: Admin only (update status, etc)
+    match /orders/{docId} {
+      allow read: if isAdmin();
+      allow create: if true
+        && request.resource.data.totalPrice is number
+        && request.resource.data.totalPrice > 0;
+      allow update: if isAdmin();
+    }
+
+    // ============================================
+    // COLLECTION: settings
+    // ============================================
+    // - Read: Public (untuk store status, QRIS URL)
+    // - Write: Admin only
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ============================================
+    // COLLECTION: stats
+    // ============================================
+    // - Read: Public
+    // - Write: Admin only (counter diupdate saat order paid)
+    match /stats/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ============================================
+    // COLLECTION: stock (PENTING!)
+    // ============================================
+    // - Read: Public (customer bisa lihat stok)
+    // - Write: Admin only (create, update, delete)
+    // - Update: Authenticated users (untuk reduceStock saat order)
+    // 
+    // Note: allow write sudah mencakup create, update, delete
+    // Tapi kita tambah explicit allow update untuk non-admin
+    // yang sudah login (untuk fitur reduceStock otomatis)
+    match /stock/{docId} {
+      allow read: if true;
+      // Admin bisa semua operasi (create, update, delete)
+      allow write: if isAdmin();
+      // Authenticated users bisa update (untuk reduceStock)
+      allow update: if request.auth != null;
+    }
+  }
+}
