@@ -6,6 +6,7 @@ import { useCart } from '../context/CartContext';
 import { TOPPINGS, TOPPING_EMOJI, DONAT_PER_BOX } from '../utils/constants';
 import { formatRupiah } from '../utils/format';
 import PaymentModal from './PaymentModal';
+import useStockStatus from '../hooks/useStockStatus';
 
 const initToppings = () => Object.fromEntries(TOPPINGS.map((t) => [t, 0]));
 
@@ -18,6 +19,7 @@ const ProductCard = memo(({ product, storeIsOpen = true, nextOpenText = '' }) =>
   const [notes, setNotes] = useState('');
   const [addedToCart, setAddedToCart] = useState(false);
   const { addItem, setIsOpen: openCart } = useCart();
+  const { stock: currentStock, loading: stockLoading } = useStockStatus();
 
   const totalPrice = product.price * quantity;
   const totalDonat = DONAT_PER_BOX * quantity;
@@ -176,7 +178,7 @@ const ProductCard = memo(({ product, storeIsOpen = true, nextOpenText = '' }) =>
         {showModal && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 pt-24 bg-black/50 backdrop-blur-sm overflow-y-auto"
             onMouseDown={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
           >
             <motion.div
@@ -184,7 +186,7 @@ const ProductCard = memo(({ product, storeIsOpen = true, nextOpenText = '' }) =>
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden max-h-[90vh] flex flex-col"
+              className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden max-h-[85vh] flex flex-col my-auto"
               onMouseDown={(e) => e.stopPropagation()}
             >
               {/* Header */}
@@ -200,10 +202,10 @@ const ProductCard = memo(({ product, storeIsOpen = true, nextOpenText = '' }) =>
                 <p className="text-sm opacity-80 mt-0.5">{product.name}</p>
               </div>
 
-              <div className="p-5 space-y-4 overflow-y-auto">
+              <div className="p-6 space-y-5 overflow-y-auto">
                 {/* Jumlah Kotak */}
                 <div>
-                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Jumlah Kotak</p>
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Jumlah Kotak</p>
                   <div className="flex items-center justify-between bg-cream dark:bg-gray-700 rounded-2xl p-4">
                     <div>
                       <div className="font-bold text-chocolate">{quantity} kotak</div>
@@ -227,14 +229,25 @@ const ProductCard = memo(({ product, storeIsOpen = true, nextOpenText = '' }) =>
 
                 {/* Topping — hanya untuk non-Mix */}
                 {product.category !== 'Mix' && (
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Topping per Kotak</p>
-                      <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                        remaining === 0 ? 'bg-green-100 text-green-600' : 'bg-chocolate/10 text-chocolate'
-                      }`}>
-                        {remaining === 0 ? '✓ Lengkap' : `Sisa ${remaining} donat`}
-                      </span>
+                  <div className="pt-2">
+                    <div className="flex flex-col items-center mb-4">
+                      <p className="text-base font-bold text-gray-800 dark:text-gray-200 mb-3">Stok Donat yang Tersisa</p>
+                      {stockLoading ? (
+                        <div className="h-9 w-32 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse" />
+                      ) : (
+                        <span className={`text-sm font-bold px-4 py-2 rounded-full ${
+                          currentStock === 0 
+                            ? 'bg-red-100 text-red-600' 
+                            : currentStock < 30 
+                            ? 'bg-yellow-100 text-yellow-700' 
+                            : 'bg-green-100 text-green-600'
+                        }`}>
+                          {currentStock === 0 ? '⚠ Stok Habis' : `${currentStock} donat tersedia`}
+                        </span>
+                      )}
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+                        Pilih topping untuk {DONAT_PER_BOX} donat per kotak
+                      </p>
                     </div>
                     <div className="space-y-2">
                       {TOPPINGS.map((topping) => {

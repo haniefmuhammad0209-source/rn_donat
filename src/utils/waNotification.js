@@ -1,6 +1,5 @@
 import { WA_NUMBER } from './constants';
 import { formatRupiah } from './format';
-import { PICKUP_SCHEDULE_LABEL } from './constants';
 
 const STATUS_MESSAGE = {
   confirmed: (order) =>
@@ -12,7 +11,7 @@ const STATUS_MESSAGE = {
   completed: (order) =>
     `🎉 *Pesanan Selesai!*\n\nHalo kak, pesanan kamu sudah siap!\n\n📦 Total: ${order.totalBoxes} kotak\n💰 Total: ${formatRupiah(order.totalPrice)}\n\nTerima kasih sudah order di RN Donat! Jangan lupa kasih testimoni ya kak 😊`,
 
-  cancelled: (order) =>
+  cancelled: () =>
     `❌ *Pesanan Dibatalkan*\n\nHalo kak, mohon maaf pesanan kamu terpaksa dibatalkan.\n\nSilakan hubungi kami untuk informasi lebih lanjut.`,
 
   paid: (order) =>

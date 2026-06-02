@@ -10,19 +10,19 @@ Stack: React 19 + Vite + Firebase Firestore + Tailwind CSS + Framer Motion. Libr
 
 ## Tasks
 
-- [ ] 1. Foundation — constants update dan waNotification extension
-  - [ ] 1.1 Tambah konstanta `PICKUP_SCHEDULE_TYPES` dan `PICKUP_SCHEDULE_LABEL` ke `src/utils/constants.js`
+- [x] 1. Foundation — constants update dan waNotification extension
+  - [x] 1.1 Tambah konstanta `PICKUP_SCHEDULE_TYPES` dan `PICKUP_SCHEDULE_LABEL` ke `src/utils/constants.js`
     - Tambah export: `PICKUP_SCHEDULE_TYPES = { NOW: 'now', TODAY: 'today', TOMORROW: 'tomorrow' }`
     - Tambah export: `PICKUP_SCHEDULE_LABEL = { now: 'Ambil Sekarang', today: 'Ambil Hari Ini', tomorrow: 'Ambil Besok' }`
     - Tidak ada perubahan pada konstanta yang sudah ada
     - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-  - [ ] 1.2 Tambah fungsi `formatPickupSchedule(pickupSchedule)` ke `src/utils/waNotification.js`
+  - [x] 1.2 Tambah fungsi `formatPickupSchedule(pickupSchedule)` ke `src/utils/waNotification.js`
     - Return string human-readable, contoh: `"🕐 Jadwal Ambil: Hari Ini pukul 14:00"`, `"🕐 Jadwal Ambil: Sekarang"`, `"🕐 Jadwal Ambil: Besok pukul 09:00"`
     - Return string kosong jika `pickupSchedule` null/undefined
     - _Requirements: 5.6_
 
-  - [ ] 1.3 Tambah fungsi `sendAdminNotification(order)` ke `src/utils/waNotification.js`
+  - [x] 1.3 Tambah fungsi `sendAdminNotification(order)` ke `src/utils/waNotification.js`
     - Buka WhatsApp ke `WA_NUMBER` dari `constants.js`
     - Pesan harus mengandung: nama pelanggan, daftar item pesanan, total harga, metode pembayaran
     - Format pesan: `"🔔 *Pesanan Baru!* ..."` dengan semua field order
@@ -41,7 +41,7 @@ Stack: React 19 + Vite + Firebase Firestore + Tailwind CSS + Framer Motion. Libr
     - **Validates: Requirements 6.4**
 
 - [ ] 2. Stock Service — Firestore stock management
-  - [ ] 2.1 Buat file `src/services/stockService.js` dengan interface lengkap
+  - [x] 2.1 Buat file `src/services/stockService.js` dengan interface lengkap
     - Implementasi `getStock()` → `Promise<{ current, threshold }>`
     - Implementasi `setStock(value)` → simpan ke `stock/plain_donut` dengan `updatedAt: serverTimestamp()`
     - Implementasi `setThreshold(value)` → update field `threshold` di `stock/plain_donut`
@@ -50,7 +50,7 @@ Stack: React 19 + Vite + Firebase Firestore + Tailwind CSS + Framer Motion. Libr
     - Default threshold: 30 pcs
     - _Requirements: 4.2, 4.3, 4.5_
 
-  - [ ] 2.2 Buat hook `src/hooks/useStockStatus.js`
+  - [~] 2.2 Buat hook `src/hooks/useStockStatus.js`
     - Gunakan `stockService.subscribeStock()` di dalam `useEffect`
     - Return `{ stock, threshold, isLow, loading }` di mana `isLow = stock < threshold`
     - Cleanup unsubscribe pada unmount
@@ -64,7 +64,7 @@ Stack: React 19 + Vite + Firebase Firestore + Tailwind CSS + Framer Motion. Libr
     - **Validates: Requirements 4.3, 4.4, 4.7**
 
 - [ ] 3. Pickup Schedule di PaymentModal + orderService.create()
-  - [ ] 3.1 Modifikasi `src/components/PaymentModal.jsx` — tambah seksi Jadwal Pengambilan
+  - [~] 3.1 Modifikasi `src/components/PaymentModal.jsx` — tambah seksi Jadwal Pengambilan
     - Tambah state: `pickupType` (default `'now'`), `pickupTime` (string HH:MM)
     - Tambah UI radio buttons: "Ambil Sekarang", "Ambil Hari Ini", "Ambil Besok" — muncul di antara pilihan COD/QRIS dan tombol konfirmasi
     - Tampilkan input waktu `<input type="time">` saat `pickupType` adalah `'today'` atau `'tomorrow'`
@@ -73,18 +73,18 @@ Stack: React 19 + Vite + Firebase Firestore + Tailwind CSS + Framer Motion. Libr
     - Reset state pickup saat modal ditutup (di `useEffect` yang sudah ada)
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.8_
 
-  - [ ] 3.2 Modifikasi `buildWAMessage()` di `PaymentModal.jsx` — sertakan jadwal ambil
+  - [~] 3.2 Modifikasi `buildWAMessage()` di `PaymentModal.jsx` — sertakan jadwal ambil
     - Panggil `formatPickupSchedule(pickupSchedule)` dari `waNotification.js`
     - Tambahkan baris jadwal ambil ke pesan WA jika hasil `formatPickupSchedule` tidak kosong
     - _Requirements: 5.6_
 
-  - [ ] 3.3 Modifikasi `orderService.create()` di `src/services/orderService.js` — tambah `pickupSchedule` + kurangi stok
+  - [~] 3.3 Modifikasi `orderService.create()` di `src/services/orderService.js` — tambah `pickupSchedule` + kurangi stok
     - Tambah parameter `pickupSchedule` ke fungsi `create()`
     - Sertakan field `pickupSchedule` di payload `addDoc`
     - Setelah `addDoc` berhasil, panggil `stockService.reduceStock(totalBoxes * DONAT_PER_BOX)` sebagai fire-and-forget (`.catch(err => console.error(...))`)
     - _Requirements: 4.3, 5.5_
 
-  - [ ] 3.4 Modifikasi semua pemanggil `orderService.create()` — teruskan `pickupSchedule`
+  - [~] 3.4 Modifikasi semua pemanggil `orderService.create()` — teruskan `pickupSchedule`
     - Cari semua tempat di codebase yang memanggil `orderService.create()` (kemungkinan di Cart.jsx atau PaymentModal.jsx)
     - Pastikan `pickupSchedule` yang dibangun dari state modal diteruskan ke service
     - _Requirements: 5.5_
@@ -96,7 +96,7 @@ Stack: React 19 + Vite + Firebase Firestore + Tailwind CSS + Framer Motion. Libr
     - **Validates: Requirements 5.2, 5.3, 5.4, 5.5**
 
 - [ ] 4. Dashboard Statistik Lengkap
-  - [ ] 4.1 Buat fungsi kalkulasi murni di `src/utils/statsUtils.js` (file baru)
+  - [-] 4.1 Buat fungsi kalkulasi murni di `src/utils/statsUtils.js` (file baru)
     - `calculateTodayStats(orders)` → `{ todayRevenue, todayOrderCount }` — filter `createdAt` = hari ini kalender; revenue hanya paid/completed
     - `calculateMonthStats(orders)` → `{ monthRevenue }` — filter `createdAt` = bulan+tahun ini; hanya paid/completed
     - `getBestSellingProduct(orders)` → nama produk dengan akumulasi `quantity` tertinggi dari orders paid/completed; return `null` jika kosong
@@ -128,7 +128,7 @@ Stack: React 19 + Vite + Firebase Firestore + Tailwind CSS + Framer Motion. Libr
     - File: `src/utils/__tests__/statsUtils.test.js`
     - **Validates: Requirements 2.5**
 
-  - [ ] 4.6 Integrasikan statistik baru ke tab Statistik di `src/pages/Admin.jsx`
+  - [~] 4.6 Integrasikan statistik baru ke tab Statistik di `src/pages/Admin.jsx`
     - Import dan gunakan `calculateTodayStats`, `calculateMonthStats`, `getBestSellingProduct`, `countUniqueCustomers` dari `statsUtils.js`
     - Bungkus semua kalkulasi baru dalam `useMemo([orders])` untuk efisiensi
     - Tampilkan kartu stat baru: Pendapatan Hari Ini, Pendapatan Bulan Ini, Pesanan Hari Ini, Produk Terlaris, Pelanggan Unik
@@ -137,30 +137,30 @@ Stack: React 19 + Vite + Firebase Firestore + Tailwind CSS + Framer Motion. Libr
     - Jika stok negatif, tampilkan peringatan "🚨 Stok Habis: N pcs"
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 4.4, 4.6, 4.7_
 
-- [ ] 5. Checkpoint — Pastikan semua tests pass
+- [~] 5. Checkpoint — Pastikan semua tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 6. Notifikasi Pesanan Baru untuk Admin
-  - [ ] 6.1 Buat hook `src/hooks/useAdminOrdersListener.js`
+  - [~] 6.1 Buat hook `src/hooks/useAdminOrdersListener.js`
     - Terima prop `{ onNewOrder: (order) => void }`
     - Simpan `lastSeenOrderIds` di `useRef` (tidak di localStorage untuk kesederhanaan awal) — inisialisasi dengan semua order yang sudah ada saat pertama mount
     - Setiap kali `onSnapshot` fires dengan orders baru, bandingkan dengan `lastSeenOrderIds`; panggil `onNewOrder(order)` hanya untuk order yang benar-benar baru (tidak ada di `lastSeenOrderIds` sebelumnya)
     - Update `lastSeenOrderIds` setelah setiap snapshot
     - _Requirements: 6.1, 6.6_
 
-  - [ ] 6.2 Implementasi browser push notification di `src/pages/Admin.jsx`
+  - [~] 6.2 Implementasi browser push notification di `src/pages/Admin.jsx`
     - Saat Admin mount dan `isAdmin === true`, periksa `Notification.permission`
     - Jika `'default'`, panggil `Notification.requestPermission()`; simpan hasil ke `localStorage` key `rn_donat_admin_notif_asked`
     - Jika sudah pernah ditolak (permission `'denied'` atau flag di localStorage), jangan minta lagi
     - Saat `onNewOrder(order)` dipanggil dan permission `'granted'`, tampilkan `new Notification(...)` dengan judul "Pesanan Baru 🍩" dan body berisi nama + total harga
     - _Requirements: 6.1, 6.2, 6.3_
 
-  - [ ] 6.3 Integrasikan `sendAdminNotification` ke callback `onNewOrder`
+  - [~] 6.3 Integrasikan `sendAdminNotification` ke callback `onNewOrder`
     - Saat `onNewOrder(order)` dipanggil, panggil `sendAdminNotification(order)` dari `waNotification.js`
     - Gunakan `useAdminOrdersListener({ onNewOrder })` di dalam Admin.jsx
     - _Requirements: 6.4_
 
-  - [ ] 6.4 Tambah badge pending ke tab Pesanan di Admin.jsx
+  - [~] 6.4 Tambah badge pending ke tab Pesanan di Admin.jsx
     - Hitung `pendingCount = orders.filter(o => o.status === 'pending').length`
     - Tampilkan badge angka di label tab "Pesanan" jika `pendingCount > 0`
     - Badge menggunakan `aria-label={`${pendingCount} pesanan pending`}`
@@ -173,7 +173,7 @@ Stack: React 19 + Vite + Firebase Firestore + Tailwind CSS + Framer Motion. Libr
     - **Validates: Requirements 6.5**
 
 - [ ] 7. Laporan Penjualan + Export Excel/PDF
-  - [ ] 7.1 Install library ekspor dan buat `src/services/reportService.js`
+  - [~] 7.1 Install library ekspor dan buat `src/services/reportService.js`
     - Install dependencies: `npm install xlsx jspdf jspdf-autotable`
     - Implementasi `filterByDateRange(orders, startDate, endDate)` → filter `createdAt` dalam rentang inklusif
     - Implementasi `filterByMonth(orders, year, month)` → filter bulan+tahun tertentu
@@ -195,13 +195,13 @@ Stack: React 19 + Vite + Firebase Firestore + Tailwind CSS + Framer Motion. Libr
     - File: `src/services/__tests__/reportService.test.js`
     - **Validates: Requirements 3.4, 3.7**
 
-  - [ ] 7.4 Buat hook `src/hooks/useSalesReport.js`
+  - [~] 7.4 Buat hook `src/hooks/useSalesReport.js`
     - State: `filterMode` (`'range'` | `'month'`), `startDate`, `endDate`, `selectedMonth` (format `"YYYY-MM"`)
     - Derived: `rows` (hasil `groupByDay` dari orders yang sudah difilter), `totalRevenue`, `totalOrders`
     - Gunakan `useMemo` dengan dependency pada `orders`, filter states
     - _Requirements: 3.3, 3.4, 3.7, 3.8_
 
-  - [ ] 7.5 Buat tab Laporan di `src/pages/Admin.jsx`
+  - [~] 7.5 Buat tab Laporan di `src/pages/Admin.jsx`
     - Tambah tab "Laporan" (ikon `FiFileText`) di antara Statistik dan Pesanan dalam array `TABS`
     - Render komponen laporan dengan filter mode toggle (Rentang Tanggal / Per Bulan)
     - Tampilkan tabel dengan kolom: Tanggal, Jumlah Pesanan, Total Pendapatan
@@ -211,7 +211,7 @@ Stack: React 19 + Vite + Firebase Firestore + Tailwind CSS + Framer Motion. Libr
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.8_
 
 - [ ] 8. Riwayat Pelanggan Detail
-  - [ ] 8.1 Buat fungsi `computeCustomerList` dan `getCustomerHistory` di `src/utils/customerUtils.js` (file baru)
+  - [-] 8.1 Buat fungsi `computeCustomerList` dan `getCustomerHistory` di `src/utils/customerUtils.js` (file baru)
     - `computeCustomerList(orders)` → array pelanggan unik `{ phone, name, orderCount, totalSpent, lastOrder }` diurutkan descending by `totalSpent`
     - `getCustomerHistory(phone, orders)` → filter orders dengan `customerPhone === phone`, diurutkan descending by `createdAt`; sertakan computed `avgOrderValue = totalSpent / orderCount`
     - Kedua fungsi harus pure
@@ -229,7 +229,7 @@ Stack: React 19 + Vite + Firebase Firestore + Tailwind CSS + Framer Motion. Libr
     - File: `src/utils/__tests__/customerUtils.test.js`
     - **Validates: Requirements 7.4, 7.6**
 
-  - [ ] 8.4 Perluas tab Pelanggan di `src/pages/Admin.jsx` — panel detail riwayat
+  - [~] 8.4 Perluas tab Pelanggan di `src/pages/Admin.jsx` — panel detail riwayat
     - Tambah state `selectedCustomerPhone` (null = tampilkan daftar, string = tampilkan panel detail)
     - Gunakan `computeCustomerList(orders)` dari `customerUtils.js` (gantikan `useMemo` `customers` yang sudah ada)
     - Saat baris pelanggan diklik, set `selectedCustomerPhone`
@@ -238,7 +238,7 @@ Stack: React 19 + Vite + Firebase Firestore + Tailwind CSS + Framer Motion. Libr
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8_
 
 - [ ] 9. Stok Management Tab di Admin Panel
-  - [ ] 9.1 Buat tab Stok di `src/pages/Admin.jsx`
+  - [~] 9.1 Buat tab Stok di `src/pages/Admin.jsx`
     - Tambah tab "Stok" (ikon `FiBox`) setelah Pesanan dalam array `TABS`
     - Render form input stok awal dengan label "Stok Donat Polos (pcs)" dan `aria-required`
     - Render input threshold dengan label "Batas Minimum Peringatan (pcs)"
@@ -247,7 +247,7 @@ Stack: React 19 + Vite + Firebase Firestore + Tailwind CSS + Framer Motion. Libr
     - Tampilkan nilai stok saat ini dari `useStockStatus()` secara real-time
     - _Requirements: 4.1, 4.2, 4.5, 4.6_
 
-  - [ ] 9.2 Tampilkan `pickupSchedule` pada setiap baris order di tab Pesanan
+  - [~] 9.2 Tampilkan `pickupSchedule` pada setiap baris order di tab Pesanan
     - Di komponen `AdminOrdersTab`, setelah menampilkan `order.notes`, tambah baris jadwal ambil
     - Import dan gunakan `formatPickupSchedule(order.pickupSchedule)` dari `waNotification.js`
     - Tampilkan hanya jika `order.pickupSchedule` tidak null/undefined
@@ -260,12 +260,12 @@ Stack: React 19 + Vite + Firebase Firestore + Tailwind CSS + Framer Motion. Libr
     - **Validates: Requirements 1.7**
 
 - [ ] 10. Checkpoint Final — Integrasi & Polishing
-  - [ ] 10.1 Update Firestore rules untuk koleksi `stock`
+  - [~] 10.1 Update Firestore rules untuk koleksi `stock`
     - Edit `firestore.rules` — tambah rule `match /stock/{docId}`: allow read/write update untuk unauthenticated (untuk `reduceStock` dari order creation pelanggan); allow write setStock/setThreshold hanya untuk `isAdmin()`
     - Verifikasi rule tidak memblokir operasi yang ada (`orders`, `stats`, `settings`, `products`, `testimonials`)
     - _Requirements: 4.2, 4.3_
 
-  - [ ] 10.2 Pastikan semua imports baru ditambahkan dengan benar di `Admin.jsx`
+  - [~] 10.2 Pastikan semua imports baru ditambahkan dengan benar di `Admin.jsx`
     - Import `useAdminOrdersListener`, `useStockStatus`, `useSalesReport`
     - Import `computeCustomerList`, `getCustomerHistory` dari `customerUtils.js`
     - Import `calculateTodayStats`, `calculateMonthStats`, `getBestSellingProduct`, `countUniqueCustomers` dari `statsUtils.js`
@@ -273,14 +273,14 @@ Stack: React 19 + Vite + Firebase Firestore + Tailwind CSS + Framer Motion. Libr
     - Import icon baru: `FiFileText` (untuk tab Laporan)
     - _Requirements: semua requirement_
 
-  - [ ] 10.3 Verifikasi aksesibilitas semua UI baru
+  - [~] 10.3 Verifikasi aksesibilitas semua UI baru
     - Pastikan semua `<input>` dan `<select>` baru memiliki `<label>` atau `aria-label`
     - Badge pending menggunakan `aria-label="N pesanan pending"`
     - Panel detail pelanggan dapat ditutup dengan tombol Escape
     - Input jadwal pengambilan memiliki `aria-required="true"`
     - _Requirements: 5.1, 5.8, 6.5, 7.3, 7.7_
 
-- [ ] 11. Final Checkpoint — Pastikan semua tests pass
+- [~] 11. Final Checkpoint — Pastikan semua tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ---
