@@ -53,10 +53,29 @@ export const stockService = {
    * @param {number} qty
    */
   reduceStock: async (qty) => {
-    await updateDoc(doc(db, 'stock', 'plain_donut'), {
-      current: increment(-qty),
-      updatedAt: serverTimestamp(),
-    });
+    // Gunakan setDoc dengan merge untuk handle dokumen yang belum ada
+    await setDoc(
+      doc(db, 'stock', 'plain_donut'),
+      {
+        current: increment(-qty),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  },
+
+  /**
+   * Initialize stock document if not exists
+   */
+  initStock: async () => {
+    const snap = await getDoc(doc(db, 'stock', 'plain_donut'));
+    if (!snap.exists()) {
+      await setDoc(doc(db, 'stock', 'plain_donut'), {
+        current: 0,
+        threshold: DEFAULT_THRESHOLD,
+        updatedAt: serverTimestamp(),
+      });
+    }
   },
 
   /**

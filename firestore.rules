@@ -48,13 +48,13 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Stock — read public (customer bisa baca), setStock/setThreshold admin only
-    // reduceStock dipanggil saat order create (unauthenticated) — izinkan update untuk semua
+    // Stock — read public (customer bisa baca), write admin only
+    // Untuk reduceStock (increment), gunakan update yang diizinkan untuk semua
     match /stock/{docId} {
       allow read: if true;
-      // Admin bisa set stok awal dan threshold
-      allow write: if isAdmin();
-      // Izinkan update (increment) untuk siapapun — untuk reduceStock saat order dibuat pelanggan
+      // Admin bisa create, update, delete
+      allow create, delete: if isAdmin();
+      // Update diizinkan untuk semua (untuk reduceStock saat order dibuat)
       allow update: if true;
     }
   }

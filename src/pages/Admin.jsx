@@ -230,6 +230,9 @@ const Admin = () => {
 
   useEffect(() => {
     if (!isAdmin) return;
+    // Initialize stock document if not exists
+    stockService.initStock().catch(err => console.error('[Stock] Init error:', err));
+    
     const q1 = query(collection(db, 'testimonials'), orderBy('createdAt', 'desc'));
     const q2 = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
     const u1 = onSnapshot(q1, snap => setTestimonials(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
@@ -908,8 +911,9 @@ const Admin = () => {
                         await stockService.setStock(Number(stockInput));
                         toast('Stok berhasil disimpan', 'success');
                         setStockInput('');
-                      } catch {
-                        toast('Gagal menyimpan stok', 'error');
+                      } catch (err) {
+                        console.error('[Stock] Gagal menyimpan stok:', err);
+                        toast(`Gagal menyimpan stok: ${err.message || 'Unknown error'}`, 'error');
                       } finally { setSavingStock(false); }
                     }}
                     className="bg-chocolate text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-dark-chocolate transition-colors disabled:opacity-60"
