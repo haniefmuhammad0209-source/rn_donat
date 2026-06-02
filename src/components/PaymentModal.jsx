@@ -1,36 +1,36 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiX, FiUpload, FiCheck } from 'react-icons/fi';
-import { settingsService } from '../services/settingsService';
+import { useSettings } from '../context/SettingsContext';
 import { cloudinaryService } from '../services/cloudinaryService';
+import { orderService } from '../services/orderService';
 import { formatRupiah } from '../utils/format';
-import { WA_NUMBER, PAYMENT_METHOD, PAYMENT_METHOD_LABEL } from '../utils/constants';
+import { WA_NUMBER, PAYMENT_METHOD, PAYMENT_METHOD_LABEL, PICKUP_SCHEDULE_TYPES, PICKUP_SCHEDULE_LABEL } from '../utils/constants';
+import { formatPickupSchedule } from '../utils/waNotification';
 
 const PaymentModal = ({ isOpen, onClose, items, totalPrice, totalBoxes }) => {
+  const { settings } = useSettings();
+  const qrisUrl = settings?.qrisImageUrl || '';
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHOD.COD);
-  const [qrisUrl, setQrisUrl] = useState('');
-  const [proofFile, setProofFile] = useState(null);
   const [proofPreview, setProofPreview] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [proofUrl, setProofUrl] = useState('');
   const [proofError, setProofError] = useState('');
+  const [pickupType, setPickupType] = useState(PICKUP_SCHEDULE_TYPES.NOW);
+  const [pickupTime, setPickupTime] = useState('');
   const inputRef = useRef(null);
-
-  useEffect(() => {
-    const unsub = settingsService.subscribe((s) => setQrisUrl(s.qrisImageUrl || ''));
-    return unsub;
-  }, []);
 
   // Reset saat modal dibuka/tutup
   useEffect(() => {
     if (!isOpen) {
-      setProofFile(null);
       setProofPreview('');
       setProofUrl('');
       setProofError('');
       setUploadProgress(0);
       setPaymentMethod(PAYMENT_METHOD.COD);
+      setPickupType(PICKUP_SCHEDULE_TYPES.NOW);
+      setPickupTime('');
     }
   }, [isOpen]);
 
@@ -39,7 +39,6 @@ const PaymentModal = ({ isOpen, onClose, items, totalPrice, totalBoxes }) => {
     if (err) { setProofError(err); return; }
     setProofError('');
     setProofPreview(URL.createObjectURL(file));
-    setProofFile(file);
     setUploading(true);
     setUploadProgress(0);
     try {
@@ -48,7 +47,6 @@ const PaymentModal = ({ isOpen, onClose, items, totalPrice, totalBoxes }) => {
     } catch {
       setProofError('Upload gagal, coba lagi.');
       setProofPreview('');
-      setProofFile(null);
     } finally {
       setUploading(false);
     }
@@ -66,26 +64,69 @@ const PaymentModal = ({ isOpen, onClose, items, totalPrice, totalBoxes }) => {
     const payLabel = PAYMENT_METHOD_LABEL[paymentMethod];
     const proofLine = proofCloudUrl ? `\n🧾 Bukti bayar: ${proofCloudUrl}` : '';
 
+    const pickupSchedule = {
+      type: pickupType,
+      time: pickupType !== PICKUP_SCHEDULE_TYPES.NOW ? pickupTime : null,
+    };
+    const pickupText = formatPickupSchedule(pickupSchedule);
+    const pickupLine = pickupText ? `\n${pickupText}` : '';
+
     return encodeURIComponent(
       `Halo kak, saya ingin memesan:\n\n` +
       `${orderLines}\n\n` +
       `📦 Total: ${totalBoxes} kotak\n` +
       `💰 Total Harga: ${formatRupiah(totalPrice)}\n` +
       `💳 Metode Bayar: ${payLabel}` +
+      `${pickupLine}` +
       `${proofLine}\n\n` +
       `Mohon konfirmasi pesanan saya ya kak, terima kasih!`
     );
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     // QRIS harus upload bukti dulu
     if (paymentMethod === PAYMENT_METHOD.QRIS && !proofUrl) return;
+    // Pickup schedule validation
+    if (pickupType !== PICKUP_SCHEDULE_TYPES.NOW && !pickupTime) return;
+    const pickupSchedule = {
+      type: pickupType,
+      time: pickupType !== PICKUP_SCHEDULE_TYPES.NOW ? pickupTime : null,
+    };
     const message = buildWAMessage(proofUrl);
+    // Save order to Firestore
+    try {
+      const orderItems = items.map((item) => ({
+        productName: item.product.name,
+        productId: item.product.id || '',
+        quantity: item.quantity,
+        toppings: Object.entries(item.toppings || {})
+          .filter(([, v]) => v > 0)
+          .map(([k, v]) => `${v} ${k}`)
+          .join(', ') || 'Mix',
+        notes: item.notes || '',
+        price: item.product.price,
+      }));
+      await orderService.create({
+        items: orderItems,
+        customerName: '',
+        customerPhone: '',
+        notes: '',
+        paymentMethod,
+        totalPrice,
+        totalBoxes,
+        pickupSchedule,
+        paymentProof: proofUrl || null,
+      });
+    } catch (err) {
+      console.error('[Order] Gagal menyimpan order:', err);
+    }
     window.open(`https://wa.me/${WA_NUMBER}?text=${message}`, '_blank');
-    onClose(true);
+    onClose(true, pickupSchedule);
   };
 
-  const canConfirm = paymentMethod === PAYMENT_METHOD.COD || (paymentMethod === PAYMENT_METHOD.QRIS && proofUrl);
+  const needsPickupTime = pickupType !== PICKUP_SCHEDULE_TYPES.NOW;
+  const pickupTimeValid = !needsPickupTime || (pickupTime && pickupTime.length > 0);
+  const canConfirm = pickupTimeValid && (paymentMethod === PAYMENT_METHOD.COD || (paymentMethod === PAYMENT_METHOD.QRIS && proofUrl));
 
   return (
     <AnimatePresence>
@@ -228,6 +269,60 @@ const PaymentModal = ({ isOpen, onClose, items, totalPrice, totalBoxes }) => {
                 )}
               </AnimatePresence>
 
+              {/* Jadwal Pengambilan */}
+              <div>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  🕐 Jadwal Pengambilan
+                </p>
+                <div className="space-y-2">
+                  {Object.entries(PICKUP_SCHEDULE_TYPES).map(([, val]) => (
+                    <label
+                      key={val}
+                      className={`flex items-center space-x-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                        pickupType === val
+                          ? 'border-chocolate bg-chocolate/5 dark:bg-chocolate/10'
+                          : 'border-gray-200 dark:border-gray-600 hover:border-chocolate/40'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="pickupType"
+                        value={val}
+                        checked={pickupType === val}
+                        onChange={() => { setPickupType(val); setPickupTime(''); }}
+                        className="accent-chocolate"
+                      />
+                      <span className={`text-sm font-medium ${pickupType === val ? 'text-chocolate' : 'text-gray-700 dark:text-gray-300'}`}>
+                        {PICKUP_SCHEDULE_LABEL[val]}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+
+                {/* Time input for today/tomorrow */}
+                {needsPickupTime && (
+                  <div className="mt-3">
+                    <label
+                      htmlFor="pickup-time"
+                      className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block"
+                    >
+                      Pilih Jam Pengambilan <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      id="pickup-time"
+                      type="time"
+                      value={pickupTime}
+                      onChange={(e) => setPickupTime(e.target.value)}
+                      aria-required="true"
+                      className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-chocolate outline-none text-sm text-gray-800 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                    />
+                    {!pickupTime && (
+                      <p className="text-red-500 text-xs mt-1">Jam pengambilan wajib diisi</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Tombol konfirmasi */}
               <motion.button
                 onClick={handleConfirm}
@@ -246,6 +341,7 @@ const PaymentModal = ({ isOpen, onClose, items, totalPrice, totalBoxes }) => {
                 </svg>
                 <span>
                   {uploading ? 'Mengupload...' :
+                   needsPickupTime && !pickupTime ? 'Isi jam pengambilan dulu' :
                    paymentMethod === PAYMENT_METHOD.QRIS && !proofUrl ? 'Upload bukti dulu' :
                    'Konfirmasi & Chat WhatsApp'}
                 </span>

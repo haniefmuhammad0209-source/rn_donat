@@ -16,10 +16,6 @@ export const TOPPING_EMOJI = {
   Keju: '🧀',
 };
 
-export const PRODUCT_CATEGORIES = [
-  'All', 'Coklat', 'Matcha', 'Cappuccino', 'Red Velvet', 'Tiramisu', 'Mix',
-];
-
 // Single source of truth untuk admin UIDs
 export const ADMIN_UIDS = [
   'QHS8fA0mGEYV4aayfJ0DFVVRshT2',
@@ -63,4 +59,17 @@ export const PAYMENT_METHOD = {
 export const PAYMENT_METHOD_LABEL = {
   qris: 'QRIS',
   cod: 'Bayar Langsung',
+};
+
+// Pickup schedule types
+export const PICKUP_SCHEDULE_TYPES = {
+  NOW: 'now',
+  TODAY: 'today',
+  TOMORROW: 'tomorrow',
+};
+
+export const PICKUP_SCHEDULE_LABEL = {
+  now: 'Ambil Sekarang',
+  today: 'Ambil Hari Ini',
+  tomorrow: 'Ambil Besok',
 };

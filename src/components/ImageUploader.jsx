@@ -28,13 +28,14 @@ const ImageUploader = ({ value, onChange, disabled }) => {
       const url = await cloudinaryService.upload(file, setProgress);
       setPreview(url);
       onChange(url);
+      URL.revokeObjectURL(localUrl); // aman direvoce setelah URL cloud sudah diset
     } catch (err) {
       setError('Upload gagal. Coba lagi.');
       setPreview(value || '');
+      URL.revokeObjectURL(localUrl);
     } finally {
       setUploading(false);
       setProgress(0);
-      URL.revokeObjectURL(localUrl);
     }
   };
 

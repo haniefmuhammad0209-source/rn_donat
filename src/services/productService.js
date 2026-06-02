@@ -8,11 +8,11 @@ const COLLECTION = 'products';
 
 export const productService = {
   // Real-time listener semua produk
-  subscribeAll: (callback) => {
+  subscribeAll: (callback, onError) => {
     const q = query(collection(db, COLLECTION), orderBy('createdAt', 'asc'));
     return onSnapshot(q, (snap) => {
       callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    });
+    }, onError);
   },
 
   // Tambah produk baru

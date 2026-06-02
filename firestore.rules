@@ -2,7 +2,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function
     function isAdmin() {
       return request.auth != null && request.auth.uid in [
         'QHS8fA0mGEYV4aayfJ0DFVVRshT2',
@@ -10,7 +9,7 @@ service cloud.firestore {
       ];
     }
 
-    // Testimonials
+    // Testimonials — read public, create hanya user login, delete admin
     match /testimonials/{docId} {
       allow read: if true;
       allow create: if request.auth != null
@@ -22,35 +21,41 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Products
+    // Products — read public, write admin only
     match /products/{docId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // Orders
+    // Orders — create public (siapapun bisa order), read/update admin
     match /orders/{docId} {
       allow read: if isAdmin();
       allow create: if true
-        && request.resource.data.customerName is string
         && request.resource.data.totalPrice is number
         && request.resource.data.totalPrice > 0;
-      allow update: if isAdmin()
-        || (request.auth == null
-          && resource.data.status == 'waiting_payment'
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['paymentProof', 'status', 'updatedAt']));
+      allow update: if isAdmin();
     }
 
-    // Settings
+    // Settings — read public (store status, QRIS URL), write admin
     match /settings/{docId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // Stats
+    // Stats — read public, write admin only (counter diupdate saat order paid)
     match /stats/{docId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if isAdmin();
+    }
+
+    // Stock — read public (customer bisa baca), setStock/setThreshold admin only
+    // reduceStock dipanggil saat order create (unauthenticated) — izinkan update untuk semua
+    match /stock/{docId} {
+      allow read: if true;
+      // Admin bisa set stok awal dan threshold
+      allow write: if isAdmin();
+      // Izinkan update (increment) untuk siapapun — untuk reduceStock saat order dibuat pelanggan
+      allow update: if true;
     }
   }
 }

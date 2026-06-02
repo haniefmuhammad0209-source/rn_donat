@@ -43,6 +43,7 @@ export const usePageSEO = ({
     setMeta('meta[property="og:image"]', 'content', finalImage);
     setMeta('meta[property="og:url"]', 'content', finalUrl);
     setMeta('meta[property="og:type"]', 'content', type);
+    setMeta('meta[name="twitter:card"]', 'content', 'summary_large_image');
     setMeta('meta[name="twitter:title"]', 'content', finalTitle);
     setMeta('meta[name="twitter:description"]', 'content', finalDesc);
     setMeta('meta[name="twitter:image"]', 'content', finalImage);

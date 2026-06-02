@@ -22,16 +22,3 @@ export const timeAgo = (timestamp) => {
 // Format nomor WA (08xx → 62xx)
 export const formatWANumber = (number) =>
   number.startsWith('0') ? `62${number.slice(1)}` : number;
-
-// Generate pesan WA order
-export const generateWAMessage = ({ productName, isMix, toppings, quantity, totalPrice }) => {
-  const donatCount = quantity * 6;
-  return encodeURIComponent(
-    `Halo kak, saya ingin memesan:\n\n` +
-    `🍩 Rasa: ${productName}${isMix ? ' (Campuran semua rasa)' : ''}\n` +
-    `🎨 Topping: ${toppings}\n` +
-    `📦 Jumlah: ${quantity} kotak (${donatCount} donat)\n` +
-    `💰 Total: ${formatRupiah(totalPrice)}\n\n` +
-    `Mohon konfirmasi pesanan saya ya kak, terima kasih!`
-  );
-};

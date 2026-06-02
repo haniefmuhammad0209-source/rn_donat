@@ -1,11 +1,11 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiX, FiMinus, FiPlus, FiTrash2, FiShoppingBag } from 'react-icons/fi';
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { useCart } from '../context/CartContext';
 import { formatRupiah } from '../utils/format';
 import PaymentModal from './PaymentModal';
 
-const CartItem = ({ item }) => {
+const CartItem = memo(({ item }) => {
   const { updateQuantity, removeItem } = useCart();
   const toppingText = Object.entries(item.toppings)
     .filter(([, v]) => v > 0)
@@ -62,7 +62,9 @@ const CartItem = ({ item }) => {
       </div>
     </motion.div>
   );
-};
+});
+
+CartItem.displayName = 'CartItem';
 
 const Cart = () => {
   const { items, isOpen, setIsOpen, totalItems, totalPrice, clearCart } = useCart();
@@ -81,7 +83,8 @@ const Cart = () => {
   return (
     <>
       {/* Overlay */}
-      <AnimatePresence>        {isOpen && (
+      <AnimatePresence>
+        {isOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

@@ -1,10 +1,11 @@
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { FiMessageCircle } from 'react-icons/fi';
+import { WA_NUMBER } from '../utils/constants';
 
-const WhatsAppButton = () => {
-  const whatsappNumber = '6282391869544';
+const WhatsAppButton = memo(() => {
   const message = encodeURIComponent('Halo kak, saya ingin memesan donat. Rasa: [pilih: coklat/matcha/cappuccino/red velvet/tiramisu]. Topping: [pilih: meses/oreo/kacang/keju]. Jumlah kotak: [isi jumlah].');
-  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${message}`;
+  const whatsappUrl = `https://wa.me/${WA_NUMBER}?text=${message}`;
 
   return (
     <motion.a
@@ -23,6 +24,7 @@ const WhatsAppButton = () => {
       <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full"></span>
     </motion.a>
   );
-};
+});
 
+WhatsAppButton.displayName = 'WhatsAppButton';
 export default WhatsAppButton;

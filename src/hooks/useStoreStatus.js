@@ -1,8 +1,16 @@
-import { useState, useEffect } from 'react';
-import { settingsService } from '../services/settingsService';
+import { useState, useEffect, useMemo } from 'react';
+import { useSettings } from '../context/SettingsContext';
+
+const DEFAULT_SETTINGS = {
+  openOverride: false,
+  isOpen: true,
+  weekdayOpen: 8,
+  weekdayClose: 20,
+  weekendOpen: 8,
+  weekendClose: 21,
+};
 
 const getScheduleStatus = (settings) => {
-  // Kalau admin paksa override
   if (settings.openOverride) {
     return {
       isOpen: settings.isOpen,
@@ -38,35 +46,23 @@ const getScheduleStatus = (settings) => {
   return { isOpen, nextOpenText, schedule };
 };
 
-const DEFAULT_SETTINGS = {
-  openOverride: false,
-  isOpen: true,
-  weekdayOpen: 8,
-  weekdayClose: 20,
-  weekendOpen: 8,
-  weekendClose: 21,
-};
-
 export const useStoreStatus = () => {
-  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
-  const [status, setStatus] = useState(() => getScheduleStatus(DEFAULT_SETTINGS));
+  const { settings } = useSettings();
+  const activeSettings = useMemo(() => settings || DEFAULT_SETTINGS, [settings]);
+  const [status, setStatus] = useState(() => getScheduleStatus(activeSettings));
 
-  // Subscribe ke Firestore settings
+  // Update saat settings dari Firestore berubah
   useEffect(() => {
-    const unsub = settingsService.subscribe((data) => {
-      setSettings(data);
-      setStatus(getScheduleStatus(data));
-    });
-    return unsub;
-  }, []);
+    setStatus(getScheduleStatus(activeSettings));
+  }, [activeSettings]);
 
   // Update setiap menit untuk jadwal otomatis
   useEffect(() => {
     const interval = setInterval(() => {
-      setStatus(getScheduleStatus(settings));
+      setStatus(getScheduleStatus(activeSettings));
     }, 60000);
     return () => clearInterval(interval);
-  }, [settings]);
+  }, [activeSettings]);
 
   return status;
 };

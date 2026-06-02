@@ -1,8 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiStar, FiShoppingCart, FiX, FiMinus, FiPlus, FiClock, FiShoppingBag } from 'react-icons/fi';
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { analyticsService } from '../services/analyticsService';
-import { useStoreStatus } from '../hooks/useStoreStatus';
 import { useCart } from '../context/CartContext';
 import { TOPPINGS, TOPPING_EMOJI, DONAT_PER_BOX } from '../utils/constants';
 import { formatRupiah } from '../utils/format';
@@ -10,8 +9,7 @@ import PaymentModal from './PaymentModal';
 
 const initToppings = () => Object.fromEntries(TOPPINGS.map((t) => [t, 0]));
 
-const ProductCard = ({ product }) => {
-  const [isHovered, setIsHovered] = useState(false);
+const ProductCard = memo(({ product, storeIsOpen = true, nextOpenText = '' }) => {
   const [showModal, setShowModal] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [pendingItem, setPendingItem] = useState(null);
@@ -19,7 +17,6 @@ const ProductCard = ({ product }) => {
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState('');
   const [addedToCart, setAddedToCart] = useState(false);
-  const { isOpen, nextOpenText } = useStoreStatus();
   const { addItem, setIsOpen: openCart } = useCart();
 
   const totalPrice = product.price * quantity;
@@ -85,21 +82,19 @@ const ProductCard = ({ product }) => {
 
   return (
     <>
-      <motion.div        initial={{ opacity: 0, y: 20 }}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         whileHover={{ y: -8 }}
-        onHoverStart={() => setIsHovered(true)}
-        onHoverEnd={() => setIsHovered(false)}
         className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden group"
       >
         <div className="relative h-64 overflow-hidden">
-          <motion.img
+          <img
             src={product.image}
             alt={product.name}
-            className="w-full h-full object-cover"
-            animate={{ scale: isHovered ? 1.1 : 1 }}
-            transition={{ duration: 0.3 }}
+            loading="lazy"
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
           />
           {product.bestseller && (
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
@@ -128,20 +123,20 @@ const ProductCard = ({ product }) => {
             </div>
             <motion.button
               onClick={openModal}
-              disabled={!isOpen}
-              whileHover={isOpen ? { scale: 1.05 } : {}}
-              whileTap={isOpen ? { scale: 0.95 } : {}}
-              title={!isOpen ? nextOpenText : ''}
+              disabled={!storeIsOpen}
+              whileHover={storeIsOpen ? { scale: 1.05 } : {}}
+              whileTap={storeIsOpen ? { scale: 0.95 } : {}}
+              title={!storeIsOpen ? nextOpenText : ''}
               className={`px-4 py-2.5 rounded-full font-medium transition-colors duration-200 flex items-center space-x-2 text-sm ${
-                isOpen
+                storeIsOpen
                   ? addedToCart
                     ? 'bg-green-500 text-white'
                     : 'bg-chocolate text-white hover:bg-dark-chocolate cursor-pointer'
                   : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }`}
             >
-              {isOpen ? <FiShoppingCart className="w-4 h-4" /> : <FiClock className="w-4 h-4" />}
-              <span>{isOpen ? (addedToCart ? 'Ditambahkan!' : 'Pesan') : 'Tutup'}</span>
+              {storeIsOpen ? <FiShoppingCart className="w-4 h-4" /> : <FiClock className="w-4 h-4" />}
+              <span>{storeIsOpen ? (addedToCart ? 'Ditambahkan!' : 'Pesan') : 'Tutup'}</span>
             </motion.button>
           </div>
         </div>
@@ -324,6 +319,7 @@ const ProductCard = ({ product }) => {
       )}
     </>
   );
-};
+});
 
+ProductCard.displayName = 'ProductCard';
 export default ProductCard;

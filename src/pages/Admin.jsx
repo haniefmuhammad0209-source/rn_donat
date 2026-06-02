@@ -1,23 +1,32 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { collection, onSnapshot, orderBy, query, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useSettings } from '../context/SettingsContext';
 import { authService } from '../services/authService';
 import { productService } from '../services/productService';
 import { settingsService } from '../services/settingsService';
 import { orderService } from '../services/orderService';
+import { stockService } from '../services/stockService';
+import { reportService } from '../services/reportService';
 import { timeAgo, formatRupiah } from '../utils/format';
-import { sendStatusNotification } from '../utils/waNotification';
-import { PRODUCT_CATEGORIES, ORDER_STATUS, ORDER_STATUS_LABEL, ORDER_STATUS_COLOR } from '../utils/constants';
+import { sendStatusNotification, sendAdminNotification, formatPickupSchedule } from '../utils/waNotification';
+import { ORDER_STATUS, ORDER_STATUS_LABEL, ORDER_STATUS_COLOR } from '../utils/constants';
+import { calculateTodayStats, calculateMonthStats, getBestSellingProduct, countUniqueCustomers } from '../utils/statsUtils';
+import { computeCustomerList, getCustomerHistory } from '../utils/customerUtils';
+import useStockStatus from '../hooks/useStockStatus';
+import useAdminOrdersListener from '../hooks/useAdminOrdersListener';
+import useSalesReport from '../hooks/useSalesReport';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar,
 } from 'recharts';
 import {
   FiTrash2, FiLogOut, FiStar, FiShield, FiMessageSquare,
   FiPackage, FiEdit2, FiPlus, FiToggleLeft, FiToggleRight,
-  FiBarChart2, FiBox, FiSave, FiX, FiChevronDown, FiUsers, FiPhone,
+  FiBarChart2, FiBox, FiSave, FiX, FiChevronDown, FiUsers, FiPhone, FiDollarSign,
+  FiFileText, FiArrowLeft, FiDownload,
 } from 'react-icons/fi';
 import ImageUploader from '../components/ImageUploader';
 
@@ -31,6 +40,109 @@ const Avatar = ({ src, name, size = 'md' }) => {
 
 const STATUS_COLORS = ORDER_STATUS_COLOR;
 
+const PAGE_SIZE = 10;
+
+const AdminOrdersTab = ({ orders, formatRupiah, timeAgo, handleUpdateOrderStatus, handleMarkAsPaid, ORDER_STATUS_COLOR, ORDER_STATUS_LABEL }) => {
+  const [page, setPage] = useState(1);
+  const totalPages = Math.ceil(orders.length / PAGE_SIZE);
+  const paginated = orders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <h2 className="font-bold text-gray-800">Semua Pesanan ({orders.length})</h2>
+        {totalPages > 1 && (
+          <div className="flex items-center space-x-2 text-sm">
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+              className="px-3 py-1 rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition-colors">‹</button>
+            <span className="text-gray-500">{page} / {totalPages}</span>
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+              className="px-3 py-1 rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition-colors">›</button>
+          </div>
+        )}
+      </div>
+      {orders.length === 0 ? (
+        <div className="py-16 text-center text-gray-400">
+          <FiPackage className="w-12 h-12 mx-auto mb-3 opacity-30" />
+          <p>Belum ada pesanan</p>
+        </div>
+      ) : (
+        <div className="divide-y divide-gray-50">
+          {paginated.map(order => {
+            const isCOD = order.paymentMethod === 'cod';
+            const isUnpaid = ['pending', 'processing'].includes(order.status);
+            const showMarkPaid = isCOD && isUnpaid;
+
+            return (
+              <div key={order.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <span className="font-semibold text-gray-800 text-sm">{order.customerName || 'Pelanggan'}</span>
+                    {order.customerPhone && <span className="text-xs text-gray-400 ml-2">· {order.customerPhone}</span>}
+                    <p className="text-xs text-gray-400 mt-0.5">{timeAgo(order.createdAt)}</p>
+                  </div>
+                  <div className="relative">
+                    <select value={order.status || 'pending'}
+                      onChange={e => handleUpdateOrderStatus(order.id, e.target.value, order)}
+                      className={`text-xs px-2.5 py-1 rounded-full font-medium border-0 outline-none cursor-pointer appearance-none pr-6 ${ORDER_STATUS_COLOR[order.status] || ORDER_STATUS_COLOR.pending}`}>
+                      {Object.entries(ORDER_STATUS_LABEL).map(([val, label]) => (
+                        <option key={val} value={val}>{label}</option>
+                      ))}
+                    </select>
+                    <FiChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none" />
+                  </div>
+                </div>
+                <div className="text-sm text-gray-600 space-y-0.5 mb-2">
+                  {order.items?.map((item, i) => (
+                    <p key={i}>• {item.productName} x{item.quantity} kotak — {item.toppings}</p>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3 flex-wrap gap-y-1">
+                    {order.totalPrice && <span className="text-sm font-bold text-chocolate">{formatRupiah(order.totalPrice)}</span>}
+                    {order.paymentMethod && (
+                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                        {isCOD ? '💵 COD' : '📱 QRIS'}
+                      </span>
+                    )}
+                    {order.paidAt && (
+                      <span className="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded-full font-medium">
+                        ✓ Lunas
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {order.paymentProof && (
+                      <a href={order.paymentProof} target="_blank" rel="noopener noreferrer"
+                        className="text-xs text-blue-500 hover:underline">Lihat bukti</a>
+                    )}
+                    {/* Tombol Tandai Lunas — hanya untuk COD yang belum paid */}
+                    {showMarkPaid && (
+                      <button
+                        onClick={() => handleMarkAsPaid(order.id, order)}
+                        className="flex items-center space-x-1 bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1.5 rounded-full font-semibold transition-colors"
+                      >
+                        <FiDollarSign className="w-3 h-3" />
+                        <span>Tandai Lunas</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {order.notes && <p className="text-xs text-gray-400 mt-1 italic">📝 {order.notes}</p>}
+                {order.pickupSchedule && (
+                  <p className="text-xs text-blue-500 mt-1">
+                    {formatPickupSchedule(order.pickupSchedule)}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const EMPTY_PRODUCT = {
   name: '', description: '', price: 15000,
   image: '', category: 'Coklat', rating: 4.5,
@@ -42,33 +154,33 @@ const ProductForm = ({ initial, onSave, onCancel, saving }) => {
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm space-y-4">
+      <div className="bg-white rounded-2xl p-6 shadow-sm space-y-4">
       <h3 className="font-bold text-gray-800">{initial?.id ? 'Edit Produk' : 'Tambah Produk Baru'}</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="text-xs font-semibold text-gray-500 mb-1 block">Nama Produk</label>
-          <input value={form.name} onChange={e => set('name', e.target.value)} placeholder="Donat Coklat" className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-chocolate outline-none text-sm" />
+          <input value={form.name} onChange={e => set('name', e.target.value)} placeholder="Donat Coklat" className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-chocolate outline-none text-sm text-gray-800" />
         </div>
         <div>
           <label className="text-xs font-semibold text-gray-500 mb-1 block">Kategori</label>
-          <select value={form.category} onChange={e => set('category', e.target.value)} className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-chocolate outline-none text-sm bg-white">
-            {PRODUCT_CATEGORIES.filter(c => c !== 'All').map(c => <option key={c}>{c}</option>)}
+          <select value={form.category} onChange={e => set('category', e.target.value)} className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-chocolate outline-none text-sm bg-white text-gray-800">
+            {['Coklat', 'Matcha', 'Cappuccino', 'Red Velvet', 'Tiramisu', 'Mix'].map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
         <div>
           <label className="text-xs font-semibold text-gray-500 mb-1 block">Harga (Rp)</label>
-          <input type="number" value={form.price} onChange={e => set('price', Number(e.target.value))} className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-chocolate outline-none text-sm" />
+          <input type="number" value={form.price} onChange={e => set('price', Number(e.target.value))} className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-chocolate outline-none text-sm text-gray-800" />
         </div>
         <div>
           <label className="text-xs font-semibold text-gray-500 mb-1 block">Rating (1-5)</label>
-          <input type="number" min="1" max="5" step="0.1" value={form.rating} onChange={e => set('rating', Number(e.target.value))} className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-chocolate outline-none text-sm" />
+          <input type="number" min="1" max="5" step="0.1" value={form.rating} onChange={e => set('rating', Number(e.target.value))} className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-chocolate outline-none text-sm text-gray-800" />
         </div>
         <div className="sm:col-span-2">
           <ImageUploader value={form.image} onChange={(url) => set('image', url)} />
         </div>
         <div className="sm:col-span-2">
           <label className="text-xs font-semibold text-gray-500 mb-1 block">Deskripsi</label>
-          <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={3} className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-chocolate outline-none text-sm resize-none" />
+          <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={3} className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-chocolate outline-none text-sm resize-none text-gray-800" />
         </div>
         <div className="flex items-center space-x-3">
           <input type="checkbox" id="bestseller" checked={form.bestseller} onChange={e => set('bestseller', e.target.checked)} className="w-4 h-4 accent-chocolate" />
@@ -92,16 +204,29 @@ const ProductForm = ({ initial, onSave, onCancel, saving }) => {
 const Admin = () => {
   const { user, loading, isAdmin } = useAuth();
   const toast = useToast();
+  const { settings: storeSettings } = useSettings();
+  const qrisInputRef = useRef(null);
   const [activeTab, setActiveTab] = useState('stats');
   const [testimonials, setTestimonials] = useState([]);
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
-  const [storeSettings, setStoreSettings] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [savingProduct, setSavingProduct] = useState(false);
+  // Customer history
+  const [selectedCustomerPhone, setSelectedCustomerPhone] = useState(null);
+  // Stock management state
+  const [stockInput, setStockInput] = useState('');
+  const [thresholdInput, setThresholdInput] = useState('');
+  const [savingStock, setSavingStock] = useState(false);
+
+  // Stock real-time subscription
+  const { stock, threshold, isLow } = useStockStatus();
+
+  // Sales report hook
+  const salesReport = useSalesReport(orders);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -110,8 +235,33 @@ const Admin = () => {
     const u1 = onSnapshot(q1, snap => setTestimonials(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
     const u2 = onSnapshot(q2, snap => setOrders(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
     const u3 = productService.subscribeAll(setProducts);
-    const u4 = settingsService.subscribe(setStoreSettings);
-    return () => { u1(); u2(); u3(); u4(); };
+    return () => { u1(); u2(); u3(); };
+  }, [isAdmin]);
+
+  // Admin notification for new orders (Task 6.2, 6.3)
+  const handleNewOrder = useCallback((order) => {
+    // Browser push notification
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      new Notification('Pesanan Baru 🍩', {
+        body: `${order.customerName || 'Pelanggan'} — ${formatRupiah(order.totalPrice || 0)}`,
+      });
+    }
+    // WA notification to admin
+    sendAdminNotification(order);
+  }, []);
+
+  useAdminOrdersListener({ onNewOrder: handleNewOrder });
+
+  // Request browser notification permission once (Task 6.2)
+  useEffect(() => {
+    if (!isAdmin) return;
+    if (typeof Notification === 'undefined') return;
+    const alreadyAsked = localStorage.getItem('rn_donat_admin_notif_asked');
+    if (!alreadyAsked && Notification.permission === 'default') {
+      Notification.requestPermission().then((permission) => {
+        localStorage.setItem('rn_donat_admin_notif_asked', permission);
+      });
+    }
   }, [isAdmin]);
 
   const handleDeleteTestimoni = async (id) => {
@@ -170,54 +320,51 @@ const Admin = () => {
     }
   };
 
-  // Chart data — orders per hari 7 hari terakhir
+  const handleMarkAsPaid = async (id, order) => {
+    try {
+      await orderService.markAsPaid(id);
+      toast('Pesanan ditandai lunas 💰', 'success');
+      // Kirim notif WA ke customer
+      if (order?.customerPhone) {
+        sendStatusNotification({ ...order, id }, 'paid');
+      }
+    } catch {
+      toast('Gagal menandai lunas', 'error');
+    }
+  };
+
+  // Chart data — orders per hari 7 hari terakhir (single pass)
   const chartData = useMemo(() => {
     const days = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
+      const dateStr = d.toDateString();
       const label = d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric' });
-      const count = orders.filter(o => {
-        if (!o.createdAt) return false;
+      let count = 0;
+      let revenue = 0;
+      for (const o of orders) {
+        if (!o.createdAt) continue;
         const od = o.createdAt.toDate ? o.createdAt.toDate() : new Date(o.createdAt);
-        return od.toDateString() === d.toDateString();
-      }).length;
-      const revenue = orders.filter(o => {
-        if (!o.createdAt) return false;
-        const od = o.createdAt.toDate ? o.createdAt.toDate() : new Date(o.createdAt);
-        return od.toDateString() === d.toDateString();
-      }).reduce((s, o) => s + (o.totalPrice || 0), 0);
+        if (od.toDateString() === dateStr) {
+          count++;
+          // Revenue hanya dari order yang sudah paid/completed
+          if (['paid', 'completed'].includes(o.status)) {
+            revenue += o.totalPrice || 0;
+          }
+        }
+      }
       days.push({ label, count, revenue });
     }
     return days;
   }, [orders]);
 
-  // Customer list — unique by phone
-  const customers = useMemo(() => {
-    const map = new Map();
-    orders.forEach(o => {
-      if (!o.customerPhone) return;
-      if (!map.has(o.customerPhone)) {
-        map.set(o.customerPhone, {
-          phone: o.customerPhone,
-          name: o.customerName || 'Pelanggan',
-          orderCount: 0,
-          totalSpent: 0,
-          lastOrder: null,
-        });
-      }
-      const c = map.get(o.customerPhone);
-      c.orderCount++;
-      c.totalSpent += o.totalPrice || 0;
-      if (!c.lastOrder || (o.createdAt && o.createdAt > c.lastOrder)) {
-        c.lastOrder = o.createdAt;
-      }
-    });
-    return Array.from(map.values()).sort((a, b) => b.totalSpent - a.totalSpent);
-  }, [orders]);
+  // Customer list — unique by phone (using customerUtils)
+  const customers = useMemo(() => computeCustomerList(orders), [orders]);
 
-  // Stats
-  const totalRevenue = orders.reduce((s, o) => s + (o.totalPrice || 0), 0);
+  // Stats — revenue hanya dari order yang sudah paid/completed
+  const paidOrders = orders.filter(o => ['paid', 'completed'].includes(o.status));
+  const totalRevenue = paidOrders.reduce((s, o) => s + (o.totalPrice || 0), 0);
   const pendingOrders = orders.filter(o => o.status === 'pending').length;
   const avgRating = testimonials.length > 0
     ? (testimonials.reduce((a, t) => a + t.rating, 0) / testimonials.length).toFixed(1) : '-';
@@ -226,6 +373,21 @@ const Admin = () => {
     const d = o.createdAt.toDate ? o.createdAt.toDate() : new Date(o.createdAt);
     return Date.now() - d.getTime() < 7 * 24 * 60 * 60 * 1000;
   }).length;
+
+  // Extended stats using statsUtils (Task 4.6)
+  const { todayRevenue, todayOrderCount } = useMemo(() => calculateTodayStats(orders), [orders]);
+  const { monthRevenue } = useMemo(() => calculateMonthStats(orders), [orders]);
+  const bestSeller = useMemo(() => getBestSellingProduct(orders), [orders]);
+  const uniqueCustomers = useMemo(() => countUniqueCustomers(orders), [orders]);
+
+  // Pending badge count (Task 6.4)
+  const pendingCount = orders.filter(o => o.status === 'pending').length;
+
+  // Customer history for selected customer
+  const customerHistory = useMemo(() => {
+    if (!selectedCustomerPhone) return null;
+    return getCustomerHistory(selectedCustomerPhone, orders);
+  }, [selectedCustomerPhone, orders]);
 
   if (loading) return (
     <div className="min-h-screen bg-cream flex items-center justify-center">
@@ -271,8 +433,10 @@ const Admin = () => {
 
   const TABS = [
     { id: 'stats', label: 'Statistik', icon: FiBarChart2 },
+    { id: 'reports', label: 'Laporan', icon: FiFileText },
     { id: 'products', label: 'Produk', icon: FiBox },
-    { id: 'orders', label: 'Pesanan', icon: FiPackage },
+    { id: 'orders', label: 'Pesanan', icon: FiPackage, badge: pendingCount > 0 ? pendingCount : null },
+    { id: 'stock', label: 'Stok', icon: FiBox },
     { id: 'customers', label: 'Pelanggan', icon: FiUsers },
     { id: 'testimoni', label: 'Testimoni', icon: FiMessageSquare },
   ];
@@ -306,18 +470,32 @@ const Admin = () => {
                 <p className="font-semibold text-gray-800 text-sm">Status Toko</p>
                 <p className="text-xs text-gray-500 mt-0.5">
                   {storeSettings.isOpen ? '🟢 Toko sedang BUKA' : '🔴 Toko sedang TUTUP'}
-                  {storeSettings.openOverride && ' (override manual)'}
+                  {storeSettings.openOverride ? ' (override manual)' : ' (jadwal otomatis)'}
                 </p>
               </div>
-              <button onClick={handleToggleStore}
-                className={`flex items-center space-x-2 px-5 py-2.5 rounded-full font-semibold text-sm transition-colors ${
-                  storeSettings.isOpen
-                    ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                    : 'bg-green-100 text-green-600 hover:bg-green-200'
-                }`}>
-                {storeSettings.isOpen ? <FiToggleRight className="w-5 h-5" /> : <FiToggleLeft className="w-5 h-5" />}
-                <span>{storeSettings.isOpen ? 'Tutup Toko' : 'Buka Toko'}</span>
-              </button>
+              <div className="flex items-center space-x-2">
+                {/* Reset ke jadwal otomatis */}
+                {storeSettings.openOverride && (
+                  <button
+                    onClick={async () => {
+                      await settingsService.update({ openOverride: false });
+                      toast('Kembali ke jadwal otomatis', 'info');
+                    }}
+                    className="text-xs text-gray-500 hover:text-chocolate border border-gray-200 px-3 py-1.5 rounded-full transition-colors"
+                  >
+                    🔄 Otomatis
+                  </button>
+                )}
+                <button onClick={handleToggleStore}
+                  className={`flex items-center space-x-2 px-5 py-2.5 rounded-full font-semibold text-sm transition-colors ${
+                    storeSettings.isOpen
+                      ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                      : 'bg-green-100 text-green-600 hover:bg-green-200'
+                  }`}>
+                  {storeSettings.isOpen ? <FiToggleRight className="w-5 h-5" /> : <FiToggleLeft className="w-5 h-5" />}
+                  <span>{storeSettings.isOpen ? 'Tutup Toko' : 'Buka Toko'}</span>
+                </button>
+              </div>
             </div>
             {/* QRIS URL setting */}
             <div className="border-t border-gray-100 pt-4">
@@ -326,14 +504,13 @@ const Admin = () => {
                 <input
                   type="url"
                   defaultValue={storeSettings.qrisImageUrl || ''}
-                  id="qris-url-input"
+                  ref={qrisInputRef}
                   placeholder="https://res.cloudinary.com/..."
-                  className="flex-1 px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-chocolate outline-none text-sm"
+                  className="flex-1 px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-chocolate outline-none text-sm text-gray-800"
                 />
                 <button
                   onClick={async () => {
-                    const val = document.getElementById('qris-url-input').value;
-                    await settingsService.update({ qrisImageUrl: val });
+                    await settingsService.update({ qrisImageUrl: qrisInputRef.current.value });
                     toast('QRIS URL disimpan', 'success');
                   }}
                   className="bg-chocolate text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-dark-chocolate transition-colors"
@@ -348,12 +525,21 @@ const Admin = () => {
 
         {/* Tabs */}
         <div className="flex space-x-2 mb-6 overflow-x-auto pb-1">
-          {TABS.map(({ id, label, icon: Icon }) => (
+          {TABS.map(({ id, label, icon: Icon, badge }) => (
             <button key={id} onClick={() => setActiveTab(id)}
-              className={`flex items-center space-x-2 px-5 py-2.5 rounded-full font-medium text-sm whitespace-nowrap transition-all ${
+              className={`flex items-center space-x-2 px-5 py-2.5 rounded-full font-medium text-sm whitespace-nowrap transition-all relative ${
                 activeTab === id ? 'bg-chocolate text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-50'
               }`}>
-              <Icon className="w-4 h-4" /><span>{label}</span>
+              <Icon className="w-4 h-4" />
+              <span>{label}</span>
+              {badge && (
+                <span
+                  aria-label={`${badge} pesanan pending`}
+                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold"
+                >
+                  {badge}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -361,6 +547,19 @@ const Admin = () => {
         {/* Tab: Statistik */}
         {activeTab === 'stats' && (
           <div className="space-y-6">
+            {/* Stock warning banner */}
+            {isLow && (
+              <div className={`rounded-2xl p-4 flex items-center space-x-3 ${stock < 0 ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
+                <span className="text-2xl">{stock < 0 ? '🚨' : '⚠️'}</span>
+                <div>
+                  <p className="font-semibold text-sm">
+                    {stock < 0 ? `Stok Habis: ${stock} pcs` : `Stok rendah: ${stock} pcs (batas: ${threshold} pcs)`}
+                  </p>
+                  <p className="text-xs opacity-80 mt-0.5">Segera tambah stok donat polos di tab Stok</p>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[
                 { label: 'Total Produk', value: products.length, color: 'text-chocolate', icon: '🍩' },
@@ -375,7 +574,29 @@ const Admin = () => {
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+            {/* Extended stats row */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="bg-white rounded-2xl p-5 shadow-sm">
+                <p className="text-gray-500 text-xs mb-1">Pendapatan Hari Ini</p>
+                <div className="text-xl font-bold text-chocolate">{formatRupiah(todayRevenue)}</div>
+                <p className="text-xs text-gray-400 mt-1">{todayOrderCount} pesanan</p>
+              </div>
+              <div className="bg-white rounded-2xl p-5 shadow-sm">
+                <p className="text-gray-500 text-xs mb-1">Pendapatan Bulan Ini</p>
+                <div className="text-xl font-bold text-purple-600">{formatRupiah(monthRevenue)}</div>
+              </div>
+              <div className="bg-white rounded-2xl p-5 shadow-sm">
+                <p className="text-gray-500 text-xs mb-1">Produk Terlaris</p>
+                <div className="text-sm font-bold text-gray-800">{bestSeller || '—'}</div>
+              </div>
+              <div className="bg-white rounded-2xl p-5 shadow-sm">
+                <p className="text-gray-500 text-xs mb-1">Pelanggan Unik</p>
+                <div className="text-2xl font-bold text-teal-600">{uniqueCustomers}</div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="bg-white rounded-2xl p-5 shadow-sm">
                 <p className="text-gray-500 text-sm mb-1">Rating Rata-rata</p>
                 <div className="flex items-center space-x-2">
@@ -387,7 +608,14 @@ const Admin = () => {
               <div className="bg-white rounded-2xl p-5 shadow-sm">
                 <p className="text-gray-500 text-sm mb-1">Total Pendapatan</p>
                 <div className="text-3xl font-bold text-chocolate">{formatRupiah(totalRevenue)}</div>
-                <p className="text-xs text-gray-400 mt-1">dari {orders.length} pesanan tercatat</p>
+                <p className="text-xs text-gray-400 mt-1">dari {paidOrders.length} pesanan lunas</p>
+              </div>
+              <div className={`rounded-2xl p-5 shadow-sm ${isLow ? 'bg-orange-50' : 'bg-white'}`}>
+                <p className="text-gray-500 text-sm mb-1">Stok Donat Polos</p>
+                <div className={`text-3xl font-bold ${stock < 0 ? 'text-red-600' : isLow ? 'text-orange-500' : 'text-green-600'}`}>
+                  {stock} pcs
+                </div>
+                <p className="text-xs text-gray-400 mt-1">batas: {threshold} pcs</p>
               </div>
             </div>
 
@@ -430,12 +658,34 @@ const Admin = () => {
         {/* Tab: Produk */}
         {activeTab === 'products' && (
           <div className="space-y-4">
-            {!showProductForm && (
-              <button onClick={() => { setEditingProduct(null); setShowProductForm(true); }}
-                className="flex items-center space-x-2 bg-chocolate text-white px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-dark-chocolate transition-colors">
-                <FiPlus className="w-4 h-4" /><span>Tambah Produk</span>
-              </button>
-            )}
+            <div className="flex items-center space-x-3">
+              {!showProductForm && (
+                <button onClick={() => { setEditingProduct(null); setShowProductForm(true); }}
+                  className="flex items-center space-x-2 bg-chocolate text-white px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-dark-chocolate transition-colors">
+                  <FiPlus className="w-4 h-4" /><span>Tambah Produk</span>
+                </button>
+              )}
+              {/* Tombol migrate — hanya tampil kalau Firestore kosong */}
+              {products.length === 0 && !showProductForm && (
+                <button
+                  onClick={async () => {
+                    const staticProds = [
+                      { name: 'Donat Coklat', description: 'Donat lembut dengan rasa coklat premium.', price: 15000, image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=500&h=500&fit=crop', category: 'Coklat', rating: 4.8, bestseller: true, perBox: 6 },
+                      { name: 'Donat Matcha', description: 'Donat dengan matcha Jepang asli yang creamy.', price: 15000, image: 'https://images.unsplash.com/photo-1626803775151-61d756612fcd?w=500&h=500&fit=crop', category: 'Matcha', rating: 4.9, bestseller: true, perBox: 6 },
+                      { name: 'Donat Cappuccino', description: 'Donat dengan rasa kopi cappuccino yang otentik.', price: 15000, image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=500&h=500&fit=crop', category: 'Cappuccino', rating: 4.7, bestseller: false, perBox: 6 },
+                      { name: 'Donat Red Velvet', description: 'Donat dengan tekstur red velvet yang lembut.', price: 15000, image: 'https://images.unsplash.com/photo-1586788680434-30d324b2d46f?w=500&h=500&fit=crop', category: 'Red Velvet', rating: 4.9, bestseller: true, perBox: 6 },
+                      { name: 'Donat Tiramisu', description: 'Donat dengan rasa tiramisu otentik dan creamy.', price: 15000, image: 'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=500&h=500&fit=crop', category: 'Tiramisu', rating: 4.8, bestseller: false, perBox: 6 },
+                      { name: 'Donat Mix', description: '1 kotak berisi 6 donat campuran berbagai rasa.', price: 15000, image: 'https://images.unsplash.com/photo-1551024601-bec78aea704b?w=500&h=500&fit=crop', category: 'Mix', rating: 5.0, bestseller: true, perBox: 6 },
+                    ];
+                    for (const p of staticProds) await productService.add(p);
+                    toast('Semua produk berhasil dimigrate ke Firestore', 'success');
+                  }}
+                  className="flex items-center space-x-2 bg-blue-500 text-white px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-blue-600 transition-colors"
+                >
+                  <span>⬆️ Import Produk Default</span>
+                </button>
+              )}
+            </div>
             {showProductForm && (
               <ProductForm
                 initial={editingProduct}
@@ -476,108 +726,349 @@ const Admin = () => {
           </div>
         )}
 
-        {/* Tab: Pesanan */}
-        {activeTab === 'orders' && (
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100">
-              <h2 className="font-bold text-gray-800">Semua Pesanan ({orders.length})</h2>
-            </div>
-            {orders.length === 0 ? (
-              <div className="py-16 text-center text-gray-400">
-                <FiPackage className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p>Belum ada pesanan</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-50">
-                {orders.map(order => (
-                  <div key={order.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <span className="font-semibold text-gray-800 text-sm">{order.customerName || 'Pelanggan'}</span>
-                        {order.customerPhone && <span className="text-xs text-gray-400 ml-2">· {order.customerPhone}</span>}
-                        <p className="text-xs text-gray-400 mt-0.5">{timeAgo(order.createdAt)}</p>
-                      </div>
-                      {/* Status dropdown */}
-                      <div className="relative">
-                        <select
-                          value={order.status || 'pending'}
-                          onChange={e => handleUpdateOrderStatus(order.id, e.target.value, order)}
-                          className={`text-xs px-2.5 py-1 rounded-full font-medium border-0 outline-none cursor-pointer appearance-none pr-6 ${ORDER_STATUS_COLOR[order.status] || ORDER_STATUS_COLOR.pending}`}
-                        >
-                          {Object.entries(ORDER_STATUS_LABEL).map(([val, label]) => (
-                            <option key={val} value={val}>{label}</option>
-                          ))}
-                        </select>
-                        <FiChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none" />
-                      </div>
-                    </div>
-                    {/* Items */}
-                    <div className="text-sm text-gray-600 space-y-0.5 mb-2">
-                      {order.items?.map((item, i) => (
-                        <p key={i}>• {item.productName} x{item.quantity} kotak — {item.toppings}</p>
-                      ))}
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        {order.totalPrice && <span className="text-sm font-bold text-chocolate">{formatRupiah(order.totalPrice)}</span>}
-                        {order.paymentMethod && (
-                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                            {order.paymentMethod === 'qris' ? '📱 QRIS' : '💵 COD'}
-                          </span>
-                        )}
-                      </div>
-                      {/* Bukti bayar */}
-                      {order.paymentProof && (
-                        <a href={order.paymentProof} target="_blank" rel="noopener noreferrer"
-                          className="text-xs text-blue-500 hover:underline flex items-center space-x-1">
-                          <span>Lihat bukti bayar</span>
-                        </a>
-                      )}
-                    </div>
-                    {order.notes && <p className="text-xs text-gray-400 mt-1 italic">📝 {order.notes}</p>}
-                  </div>
+        {/* Tab: Laporan (Task 7.5) */}
+        {activeTab === 'reports' && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-2xl p-5 shadow-sm">
+              <h2 className="font-bold text-gray-800 mb-4">Laporan Penjualan</h2>
+
+              {/* Filter mode toggle */}
+              <div className="flex space-x-2 mb-4">
+                {[
+                  { mode: 'month', label: 'Per Bulan' },
+                  { mode: 'range', label: 'Rentang Tanggal' },
+                ].map(({ mode, label }) => (
+                  <button key={mode}
+                    onClick={() => salesReport.setFilterMode(mode)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      salesReport.filterMode === mode
+                        ? 'bg-chocolate text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}>
+                    {label}
+                  </button>
                 ))}
               </div>
-            )}
+
+              {/* Filter inputs */}
+              {salesReport.filterMode === 'month' ? (
+                <div className="mb-4">
+                  <label htmlFor="report-month" className="text-xs font-semibold text-gray-600 mb-1 block">Pilih Bulan</label>
+                  <input
+                    id="report-month"
+                    type="month"
+                    value={salesReport.selectedMonth}
+                    onChange={e => salesReport.setSelectedMonth(e.target.value)}
+                    aria-label="Pilih bulan laporan"
+                    className="px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-chocolate outline-none text-sm text-gray-800"
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-3 mb-4">
+                  <div>
+                    <label htmlFor="report-start" className="text-xs font-semibold text-gray-600 mb-1 block">Dari</label>
+                    <input
+                      id="report-start"
+                      type="date"
+                      value={salesReport.startDate}
+                      onChange={e => salesReport.setStartDate(e.target.value)}
+                      aria-label="Tanggal mulai laporan"
+                      className="px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-chocolate outline-none text-sm text-gray-800"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="report-end" className="text-xs font-semibold text-gray-600 mb-1 block">Sampai</label>
+                    <input
+                      id="report-end"
+                      type="date"
+                      value={salesReport.endDate}
+                      onChange={e => salesReport.setEndDate(e.target.value)}
+                      aria-label="Tanggal akhir laporan"
+                      className="px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-chocolate outline-none text-sm text-gray-800"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Summary */}
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className="bg-gray-50 rounded-xl p-3 text-center">
+                  <p className="text-xs text-gray-500">Jumlah Pesanan</p>
+                  <p className="text-xl font-bold text-chocolate">{salesReport.totalOrders}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3 text-center col-span-2">
+                  <p className="text-xs text-gray-500">Total Pendapatan</p>
+                  <p className="text-xl font-bold text-chocolate">{formatRupiah(salesReport.totalRevenue)}</p>
+                </div>
+              </div>
+
+              {/* Export buttons */}
+              <div className="flex space-x-2 mb-4">
+                <button
+                  onClick={async () => {
+                    if (salesReport.rows.length === 0) { toast('Tidak ada data untuk diekspor', 'error'); return; }
+                    const fname = `laporan_${salesReport.filterMode === 'month' ? salesReport.selectedMonth : `${salesReport.startDate}_${salesReport.endDate}`}`;
+                    await reportService.exportToExcel(salesReport.rows, fname);
+                  }}
+                  className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-green-700 transition-colors"
+                >
+                  <FiDownload className="w-4 h-4" />
+                  <span>Export Excel</span>
+                </button>
+                <button
+                  onClick={async () => {
+                    if (salesReport.rows.length === 0) { toast('Tidak ada data untuk diekspor', 'error'); return; }
+                    const fname = `laporan_${salesReport.filterMode === 'month' ? salesReport.selectedMonth : `${salesReport.startDate}_${salesReport.endDate}`}`;
+                    await reportService.exportToPDF(salesReport.rows, fname);
+                  }}
+                  className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-red-700 transition-colors"
+                >
+                  <FiDownload className="w-4 h-4" />
+                  <span>Export PDF</span>
+                </button>
+              </div>
+
+              {/* Table */}
+              {salesReport.rows.length === 0 ? (
+                <div className="py-12 text-center text-gray-400">
+                  <FiFileText className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                  <p>Tidak ada data untuk periode yang dipilih.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-100">
+                        <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Tanggal</th>
+                        <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Jumlah Pesanan</th>
+                        <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Total Pendapatan</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {salesReport.rows.map(r => (
+                        <tr key={r.date} className="border-b border-gray-50 hover:bg-gray-50">
+                          <td className="py-2 px-3 text-gray-700">{r.date}</td>
+                          <td className="py-2 px-3 text-right text-gray-700">{r.count}</td>
+                          <td className="py-2 px-3 text-right font-semibold text-chocolate">{formatRupiah(r.revenue)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Tab: Pesanan */}
+        {activeTab === 'orders' && (
+          <AdminOrdersTab orders={orders} formatRupiah={formatRupiah} timeAgo={timeAgo}
+            handleUpdateOrderStatus={handleUpdateOrderStatus}
+            handleMarkAsPaid={handleMarkAsPaid}
+            ORDER_STATUS_COLOR={ORDER_STATUS_COLOR} ORDER_STATUS_LABEL={ORDER_STATUS_LABEL} />
+        )}
+
+        {/* Tab: Stok (Task 9.1) */}
+        {activeTab === 'stock' && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-2xl p-5 shadow-sm">
+              <h2 className="font-bold text-gray-800 mb-4">Manajemen Stok Donat Polos</h2>
+
+              {/* Current stock display */}
+              <div className={`rounded-xl p-4 mb-4 ${isLow ? (stock < 0 ? 'bg-red-50' : 'bg-orange-50') : 'bg-green-50'}`}>
+                <p className="text-xs font-semibold text-gray-500 mb-1">Stok Saat Ini</p>
+                <p className={`text-4xl font-bold ${stock < 0 ? 'text-red-600' : isLow ? 'text-orange-500' : 'text-green-600'}`}>
+                  {stock} pcs
+                </p>
+                <p className="text-xs text-gray-400 mt-1">Batas peringatan: {threshold} pcs</p>
+              </div>
+
+              {/* Set stock */}
+              <div className="mb-4">
+                <label htmlFor="stock-input" className="text-sm font-semibold text-gray-700 mb-1 block">
+                  Stok Donat Polos (pcs)
+                </label>
+                <div className="flex space-x-2">
+                  <input
+                    id="stock-input"
+                    type="number"
+                    min="0"
+                    value={stockInput}
+                    onChange={e => setStockInput(e.target.value)}
+                    placeholder={String(stock)}
+                    aria-required="true"
+                    aria-label="Jumlah stok donat polos"
+                    className="flex-1 px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-chocolate outline-none text-sm text-gray-800"
+                  />
+                  <button
+                    disabled={savingStock || stockInput === ''}
+                    onClick={async () => {
+                      setSavingStock(true);
+                      try {
+                        await stockService.setStock(Number(stockInput));
+                        toast('Stok berhasil disimpan', 'success');
+                        setStockInput('');
+                      } catch {
+                        toast('Gagal menyimpan stok', 'error');
+                      } finally { setSavingStock(false); }
+                    }}
+                    className="bg-chocolate text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-dark-chocolate transition-colors disabled:opacity-60"
+                  >
+                    {savingStock ? '...' : 'Simpan Stok'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Set threshold */}
+              <div>
+                <label htmlFor="threshold-input" className="text-sm font-semibold text-gray-700 mb-1 block">
+                  Batas Minimum Peringatan (pcs)
+                </label>
+                <div className="flex space-x-2">
+                  <input
+                    id="threshold-input"
+                    type="number"
+                    min="1"
+                    value={thresholdInput}
+                    onChange={e => setThresholdInput(e.target.value)}
+                    placeholder={String(threshold)}
+                    aria-label="Batas minimum stok untuk peringatan"
+                    className="flex-1 px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-chocolate outline-none text-sm text-gray-800"
+                  />
+                  <button
+                    disabled={thresholdInput === ''}
+                    onClick={async () => {
+                      try {
+                        await stockService.setThreshold(Number(thresholdInput));
+                        toast('Threshold berhasil disimpan', 'success');
+                        setThresholdInput('');
+                      } catch {
+                        toast('Gagal menyimpan threshold', 'error');
+                      }
+                    }}
+                    className="bg-gray-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-800 transition-colors disabled:opacity-60"
+                  >
+                    Simpan Threshold
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400 mt-1">Default: 30 pcs. Peringatan muncul saat stok di bawah nilai ini.</p>
+              </div>
+            </div>
           </div>
         )}
 
         {/* Tab: Pelanggan */}
         {activeTab === 'customers' && (
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <FiUsers className="w-5 h-5 text-chocolate" />
-                <h2 className="font-bold text-gray-800">Pelanggan ({customers.length})</h2>
-              </div>
-            </div>
-            {customers.length === 0 ? (
-              <div className="py-16 text-center text-gray-400">
-                <FiUsers className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p>Belum ada data pelanggan</p>
+          <div>
+            {/* Customer detail panel */}
+            {selectedCustomerPhone && customerHistory ? (
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                  <button
+                    onClick={() => setSelectedCustomerPhone(null)}
+                    onKeyDown={e => { if (e.key === 'Escape') setSelectedCustomerPhone(null); }}
+                    aria-label="Kembali ke daftar pelanggan"
+                    className="flex items-center space-x-2 text-chocolate hover:text-dark-chocolate transition-colors"
+                  >
+                    <FiArrowLeft className="w-4 h-4" />
+                    <span className="text-sm font-medium">Kembali</span>
+                  </button>
+                  <button
+                    onClick={() => setSelectedCustomerPhone(null)}
+                    className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+                    aria-label="Tutup panel"
+                  >
+                    <FiX className="w-4 h-4 text-gray-600" />
+                  </button>
+                </div>
+
+                {/* Customer summary */}
+                <div className="px-6 py-4 bg-chocolate/5 border-b border-gray-100">
+                  <p className="font-bold text-gray-800">{customers.find(c => c.phone === selectedCustomerPhone)?.name || 'Pelanggan'}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{selectedCustomerPhone}</p>
+                  <div className="grid grid-cols-3 gap-3 mt-3">
+                    <div className="bg-white rounded-xl p-3 text-center">
+                      <p className="text-xs text-gray-500">Total Pesanan</p>
+                      <p className="text-lg font-bold text-chocolate">{customerHistory.orderCount}</p>
+                    </div>
+                    <div className="bg-white rounded-xl p-3 text-center">
+                      <p className="text-xs text-gray-500">Total Belanja</p>
+                      <p className="text-sm font-bold text-chocolate">{formatRupiah(customerHistory.totalSpent)}</p>
+                    </div>
+                    <div className="bg-white rounded-xl p-3 text-center">
+                      <p className="text-xs text-gray-500">Rata-rata</p>
+                      <p className="text-sm font-bold text-gray-800">{formatRupiah(customerHistory.avgOrderValue)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Order history */}
+                <div className="divide-y divide-gray-50">
+                  {customerHistory.orders.length === 0 ? (
+                    <div className="py-10 text-center text-gray-400">Belum ada pesanan</div>
+                  ) : customerHistory.orders.map(order => (
+                    <div key={order.id} className="px-6 py-4">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-gray-400">{timeAgo(order.createdAt)}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ORDER_STATUS_COLOR[order.status] || ORDER_STATUS_COLOR.pending}`}>
+                          {ORDER_STATUS_LABEL[order.status] || order.status}
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-600 space-y-0.5 mb-1">
+                        {order.items?.map((item, i) => (
+                          <p key={i}>• {item.productName} x{item.quantity} — {item.toppings}</p>
+                        ))}
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-bold text-chocolate">{formatRupiah(order.totalPrice)}</span>
+                        <span className="text-xs text-gray-400">{order.paymentMethod === 'cod' ? '💵 COD' : '📱 QRIS'}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : (
-              <div className="divide-y divide-gray-50">
-                {customers.map((c, i) => (
-                  <div key={c.phone} className="px-6 py-4 flex items-center space-x-4 hover:bg-gray-50 transition-colors">
-                    <div className="w-10 h-10 rounded-full bg-chocolate/10 flex items-center justify-center flex-shrink-0">
-                      <span className="text-chocolate font-bold text-sm">{i + 1}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-800 text-sm">{c.name}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{c.phone} · {c.orderCount} pesanan</p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="font-bold text-chocolate text-sm">{formatRupiah(c.totalSpent)}</p>
-                      <p className="text-xs text-gray-400">total belanja</p>
-                    </div>
-                    <a href={`https://wa.me/${c.phone.replace(/\D/g, '').replace(/^0/, '62')}`}
-                      target="_blank" rel="noopener noreferrer"
-                      className="w-8 h-8 bg-green-50 text-green-500 rounded-full flex items-center justify-center hover:bg-green-100 transition-colors flex-shrink-0">
-                      <FiPhone className="w-3.5 h-3.5" />
-                    </a>
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <FiUsers className="w-5 h-5 text-chocolate" />
+                    <h2 className="font-bold text-gray-800">Pelanggan ({customers.length})</h2>
                   </div>
-                ))}
+                </div>
+                {customers.length === 0 ? (
+                  <div className="py-16 text-center text-gray-400">
+                    <FiUsers className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p>Belum ada data pelanggan</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-50">
+                    {customers.map((c, i) => (
+                      <div
+                        key={c.phone}
+                        onClick={() => setSelectedCustomerPhone(c.phone)}
+                        className="px-6 py-4 flex items-center space-x-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-chocolate/10 flex items-center justify-center flex-shrink-0">
+                          <span className="text-chocolate font-bold text-sm">{i + 1}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-gray-800 text-sm">{c.name}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">{c.phone} · {c.orderCount} pesanan</p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="font-bold text-chocolate text-sm">{formatRupiah(c.totalSpent)}</p>
+                          <p className="text-xs text-gray-400">total belanja</p>
+                        </div>
+                        <a href={`https://wa.me/${c.phone.replace(/\D/g, '').replace(/^0/, '62')}`}
+                          target="_blank" rel="noopener noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          className="w-8 h-8 bg-green-50 text-green-500 rounded-full flex items-center justify-center hover:bg-green-100 transition-colors flex-shrink-0">
+                          <FiPhone className="w-3.5 h-3.5" />
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

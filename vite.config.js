@@ -1,6 +1,6 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { VitePWA } from 'vite-plugin-pwa'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   plugins: [
@@ -30,7 +30,18 @@ export default defineConfig({
           {
             urlPattern: /^https:\/\/images\.unsplash\.com\/.*/i,
             handler: 'CacheFirst',
-            options: { cacheName: 'unsplash-images', expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 30 } },
+            options: {
+              cacheName: 'unsplash-images',
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/res\.cloudinary\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'cloudinary-images',
+              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
           },
           {
             urlPattern: /^https:\/\/firestore\.googleapis\.com\/.*/i,
@@ -41,4 +52,20 @@ export default defineConfig({
       },
     }),
   ],
-})
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          if (id.includes('node_modules/recharts')) return 'charts';
+          if (id.includes('node_modules/framer-motion')) return 'motion';
+          if (id.includes('node_modules/react-router-dom') || id.includes('node_modules/react-router/')) return 'router';
+          if (id.includes('node_modules/firebase/analytics')) return 'firebase-analytics';
+          if (id.includes('node_modules/firebase/firestore')) return 'firebase-db';
+          if (id.includes('node_modules/firebase/auth')) return 'firebase-auth';
+          if (id.includes('node_modules/firebase/')) return 'firebase-core';
+        },
+      },
+    },
+    chunkSizeWarningLimit: 600,
+  },
+});

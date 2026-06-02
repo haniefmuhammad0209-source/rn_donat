@@ -1,40 +1,40 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiMenu, FiX, FiShoppingBag, FiMoon, FiSun } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 
-const Navbar = () => {
+const NAV_LINKS = [
+  { name: 'Beranda', href: '#home' },
+  { name: 'Menu', href: '#menu' },
+  { name: 'Tentang', href: '#about' },
+  { name: 'Testimoni', href: '#testimonials' },
+  { name: 'Lokasi', href: '#location' },
+];
+
+const Navbar = memo(() => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { totalItems, setIsOpen: openCart } = useCart();
   const { isDark, toggleTheme } = useTheme();
 
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+  const handleScroll = useCallback(() => {
+    setScrolled(window.scrollY > 50);
   }, []);
 
-  const navLinks = [
-    { name: 'Beranda', href: '#home' },
-    { name: 'Menu', href: '#menu' },
-    { name: 'Tentang', href: '#about' },
-    { name: 'Testimoni', href: '#testimonials' },
-    { name: 'Lokasi', href: '#location' },
-  ];
+  useEffect(() => {
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
 
   return (
     <motion.nav
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? 'bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-lg'
-          : 'bg-transparent dark:bg-gray-900/80'
-      }`}
-    >
+      className={`fixed top-9 left-0 right-0 z-50 transition-all duration-300 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md ${
+        scrolled ? 'shadow-lg' : ''
+      }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
@@ -51,7 +51,7 @@ const Navbar = () => {
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center space-x-6">
-            {navLinks.map((link, index) => {
+            {NAV_LINKS.map((link, index) => {
               const isExternal = link.href.startsWith('/');
               const className = "text-gray-700 dark:text-gray-300 hover:text-chocolate dark:hover:text-pastel-pink font-medium transition-colors duration-200 relative group text-sm";
               const underline = <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-chocolate dark:bg-pastel-pink group-hover:w-full transition-all duration-300" />;
@@ -147,7 +147,7 @@ const Navbar = () => {
             className="md:hidden overflow-hidden bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-100 dark:border-gray-700"
           >
             <div className="px-4 pt-2 pb-6 space-y-1">
-              {navLinks.map((link) => (
+              {NAV_LINKS.map((link) => (
                 <a
                   key={link.name}
                   href={link.href}
@@ -163,6 +163,7 @@ const Navbar = () => {
       </AnimatePresence>
     </motion.nav>
   );
-};
+});
 
+Navbar.displayName = 'Navbar';
 export default Navbar;

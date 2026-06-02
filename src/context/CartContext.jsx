@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 
 const CartContext = createContext(null);
 const CART_KEY = 'rn_donat_cart';
@@ -24,12 +24,21 @@ export const CartProvider = ({ children }) => {
     setItems((prev) => {
       const key = `${product.id}-${JSON.stringify(toppings)}`;
       const existing = prev.find((i) => i.key === key);
+      // Simpan hanya data minimal — bukan full product object
+      const minimalProduct = {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        category: product.category,
+        perBox: product.perBox,
+      };
       if (existing) {
         return prev.map((i) =>
           i.key === key ? { ...i, quantity: i.quantity + quantity } : i
         );
       }
-      return [...prev, { key, product, quantity, toppings, notes }];
+      return [...prev, { key, product: minimalProduct, quantity, toppings, notes }];
     });
   }, []);
 
@@ -48,8 +57,14 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = useCallback(() => setItems([]), []);
 
-  const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
-  const totalPrice = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
+  const totalItems = useMemo(
+    () => items.reduce((sum, i) => sum + i.quantity, 0),
+    [items]
+  );
+  const totalPrice = useMemo(
+    () => items.reduce((sum, i) => sum + i.product.price * i.quantity, 0),
+    [items]
+  );
 
   return (
     <CartContext.Provider value={{
