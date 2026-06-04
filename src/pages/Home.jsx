@@ -4,12 +4,11 @@ import Navbar from '../components/Navbar';
 import ProductCard from '../components/ProductCard';
 import Testimoni from '../components/Testimoni';
 import Footer from '../components/Footer';
-import WhatsAppButton from '../components/WhatsAppButton';
 import PushNotification from '../components/PushNotification';
 import StoreStatusBanner from '../components/StoreStatusBanner';
 import OrderCounter from '../components/OrderCounter';
 import { ProductGridSkeleton } from '../components/Skeleton';
-import { SocialProofBanner, TrustIndicators, GuaranteeBadge } from '../components/SocialProof';
+import { SocialProofBanner, TrustIndicators } from '../components/SocialProof';
 import { CTACard, FloatingCTA, StickyCTABar } from '../components/CTAButton';
 import { usePageSEO } from '../hooks/usePageSEO';
 import { useProducts } from '../hooks/useProducts';
@@ -417,13 +416,8 @@ const Home = () => {
           </div>
 
           {/* Trust Indicators */}
-          <div className="mb-16">
+          <div>
             <TrustIndicators />
-          </div>
-
-          {/* Guarantee Badge */}
-          <div className="max-w-3xl mx-auto">
-            <GuaranteeBadge />
           </div>
         </div>
       </section>
@@ -553,10 +547,9 @@ const Home = () => {
       </section>
 
       <Footer />
-      <WhatsAppButton />
       <PushNotification />
 
-      {/* Floating WhatsApp CTA - Enhanced version */}
+      {/* Floating WhatsApp CTA */}
       <FloatingCTA
         text="Chat WhatsApp"
         icon={FiMessageCircle}
