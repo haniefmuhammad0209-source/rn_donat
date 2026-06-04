@@ -10,15 +10,15 @@ import { productService } from '../services/productService';
 import { settingsService } from '../services/settingsService';
 import { orderService } from '../services/orderService';
 import { stockService } from '../services/stockService';
-import { reportService } from '../services/reportService';
+import * as reportService from '../services/reportService';
 import { timeAgo, formatRupiah } from '../utils/format';
 import { sendStatusNotification, sendAdminNotification, formatPickupSchedule } from '../utils/waNotification';
 import { ORDER_STATUS, ORDER_STATUS_LABEL, ORDER_STATUS_COLOR } from '../utils/constants';
 import { calculateTodayStats, calculateMonthStats, getBestSellingProduct, countUniqueCustomers } from '../utils/statsUtils';
 import { computeCustomerList, getCustomerHistory } from '../utils/customerUtils';
-import useStockStatus from '../hooks/useStockStatus';
-import useAdminOrdersListener from '../hooks/useAdminOrdersListener';
-import useSalesReport from '../hooks/useSalesReport';
+import { useStockStatus } from '../hooks/useStockStatus';
+import { useAdminOrdersListener } from '../hooks/useAdminOrdersListener';
+import { useSalesReport } from '../hooks/useSalesReport';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar,
 } from 'recharts';
@@ -29,6 +29,7 @@ import {
   FiFileText, FiArrowLeft, FiDownload,
 } from 'react-icons/fi';
 import ImageUploader from '../components/ImageUploader';
+import { EmptyOrders, EmptyReport, EmptyCustomers, EmptyTestimonials } from '../components/EmptyState';
 
 const Avatar = ({ src, name, size = 'md' }) => {
   const [err, setErr] = useState(false);
@@ -62,10 +63,7 @@ const AdminOrdersTab = ({ orders, formatRupiah, timeAgo, handleUpdateOrderStatus
         )}
       </div>
       {orders.length === 0 ? (
-        <div className="py-16 text-center text-gray-400">
-          <FiPackage className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p>Belum ada pesanan</p>
-        </div>
+        <EmptyOrders size="lg" />
       ) : (
         <div className="divide-y divide-gray-50">
           {paginated.map(order => {
@@ -833,10 +831,7 @@ const Admin = () => {
 
               {/* Table */}
               {salesReport.rows.length === 0 ? (
-                <div className="py-12 text-center text-gray-400">
-                  <FiFileText className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                  <p>Tidak ada data untuk periode yang dipilih.</p>
-                </div>
+                <EmptyReport />
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -1007,9 +1002,9 @@ const Admin = () => {
                 </div>
 
                 {/* Order history */}
-                <div className="divide-y divide-gray-50">
+                <div className="divide-y divide-gray-50 dark:divide-gray-700">
                   {customerHistory.orders.length === 0 ? (
-                    <div className="py-10 text-center text-gray-400">Belum ada pesanan</div>
+                    <EmptyOrders size="sm" variant="minimal" />
                   ) : customerHistory.orders.map(order => (
                     <div key={order.id} className="px-6 py-4">
                       <div className="flex items-center justify-between mb-1">
@@ -1040,10 +1035,7 @@ const Admin = () => {
                   </div>
                 </div>
                 {customers.length === 0 ? (
-                  <div className="py-16 text-center text-gray-400">
-                    <FiUsers className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                    <p>Belum ada data pelanggan</p>
-                  </div>
+                  <EmptyCustomers />
                 ) : (
                   <div className="divide-y divide-gray-50">
                     {customers.map((c, i) => (
@@ -1085,10 +1077,7 @@ const Admin = () => {
               <h2 className="font-bold text-gray-800">Semua Testimoni ({testimonials.length})</h2>
             </div>
             {testimonials.length === 0 ? (
-              <div className="py-16 text-center text-gray-400">
-                <FiMessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p>Belum ada testimoni</p>
-              </div>
+              <EmptyTestimonials />
             ) : (
               <div className="divide-y divide-gray-50">
                 {testimonials.map(t => (

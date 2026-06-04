@@ -6,12 +6,15 @@ import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
 import { SettingsProvider } from './context/SettingsContext';
 import Loading from './components/Loading';
-import Cart from './components/Cart';
 import ErrorBoundary from './components/ErrorBoundary';
 
+// Lazy load pages for code splitting
 const Home = lazy(() => import('./pages/Home'));
 const Admin = lazy(() => import('./pages/Admin'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+
+// Lazy load Cart component (only loads when needed)
+const Cart = lazy(() => import('./components/Cart'));
 
 function App() {
   return (
@@ -22,7 +25,9 @@ function App() {
             <CartProvider>
               <ToastProvider>
               <BrowserRouter>
-                <Cart />
+                <Suspense fallback={null}>
+                  <Cart />
+                </Suspense>
                 <Suspense fallback={<Loading />}>
                   <Routes>
                     <Route path="/" element={<ErrorBoundary><Home /></ErrorBoundary>} />

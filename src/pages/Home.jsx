@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { FiArrowRight, FiStar, FiHeart } from 'react-icons/fi';
+import { FiArrowRight, FiStar, FiHeart, FiMessageCircle } from 'react-icons/fi';
 import Navbar from '../components/Navbar';
 import ProductCard from '../components/ProductCard';
 import Testimoni from '../components/Testimoni';
@@ -9,19 +9,33 @@ import PushNotification from '../components/PushNotification';
 import StoreStatusBanner from '../components/StoreStatusBanner';
 import OrderCounter from '../components/OrderCounter';
 import { ProductGridSkeleton } from '../components/Skeleton';
+import { SocialProofBanner, TrustIndicators, GuaranteeBadge } from '../components/SocialProof';
+import { CTACard, FloatingCTA, StickyCTABar } from '../components/CTAButton';
 import { usePageSEO } from '../hooks/usePageSEO';
 import { useProducts } from '../hooks/useProducts';
 import { useStoreStatus } from '../hooks/useStoreStatus';
 import { WA_NUMBER } from '../utils/constants';
+import { useState, useEffect } from 'react';
 
 const Home = () => {
   const { products, loading: productsLoading } = useProducts();
   const { isOpen: storeIsOpen, nextOpenText, schedule: storeSchedule } = useStoreStatus();
+  const [showStickyCTA, setShowStickyCTA] = useState(false);
 
   usePageSEO({
     title: 'Donat Premium Payakumbuh',
     description: 'RN Donat — donat premium di Payakumbuh. 5 varian rasa: Coklat, Matcha, Cappuccino, Red Velvet, Tiramisu. 1 kotak isi 6 donat hanya Rp 15.000.',
   });
+
+  // Show sticky CTA when user scrolls past hero
+  useEffect(() => {
+    const handleScroll = () => {
+      const heroHeight = window.innerHeight * 0.7;
+      setShowStickyCTA(window.scrollY > heroHeight);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
@@ -380,8 +394,65 @@ const Home = () => {
         </div>
       </section>
 
+      {/* Social Proof Section */}
+      <section className="py-20 bg-gradient-to-b from-warm-cream to-white dark:from-gray-800 dark:to-gray-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold text-chocolate dark:text-pastel-pink font-elegant mb-4">
+              Dipercaya Ratusan Pelanggan
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg">
+              Bergabunglah dengan pelanggan kami yang puas dengan kualitas donat premium kami
+            </p>
+          </motion.div>
+
+          {/* Stats Banner */}
+          <div className="mb-16">
+            <SocialProofBanner />
+          </div>
+
+          {/* Trust Indicators */}
+          <div className="mb-16">
+            <TrustIndicators />
+          </div>
+
+          {/* Guarantee Badge */}
+          <div className="max-w-3xl mx-auto">
+            <GuaranteeBadge />
+          </div>
+        </div>
+      </section>
+
       {/* Testimonials Section */}
       <Testimoni />
+
+      {/* CTA Card Section */}
+      <section className="py-20 bg-gradient-to-b from-warm-cream to-white dark:from-gray-800 dark:to-gray-900">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <CTACard
+            title="Siap Menikmati Donat Premium?"
+            description="Pesan sekarang dan rasakan kelezatan donat premium dengan bahan pilihan. Pre-order sekarang untuk mendapatkan donat segar!"
+            benefits={[
+              'Bahan premium berkualitas tinggi',
+              'Dibuat fresh setelah pesanan diterima',
+              '5 varian rasa dan topping pilihan',
+              'Harga terjangkau, hanya Rp 15.000/kotak',
+              'Proses order mudah via WhatsApp',
+            ]}
+            buttonText="Order via WhatsApp"
+            buttonAction={() => {
+              const message = encodeURIComponent('Halo kak, saya ingin memesan donat RN Donat. Bisa bantu saya untuk order?');
+              window.open(`https://wa.me/${WA_NUMBER}?text=${message}`, '_blank');
+            }}
+            urgencyText="Pre-order sekarang untuk stok besok!"
+          />
+        </div>
+      </section>
 
       {/* Location Section */}
       <section id="location" className="py-20 bg-white dark:bg-gray-900">
@@ -418,9 +489,9 @@ const Home = () => {
                   <div>
                     <h4 className="font-semibold text-chocolate mb-1">Alamat</h4>
                     <p className="text-gray-600 dark:text-gray-400">
-                      Jl. Raya Bukittinggi - Payakumbuh No.233,<br />
-                      Pakan Sinayan, Kec. Payakumbuh Barat,<br />
-                      Kota Payakumbuh, Sumatera Barat 26224
+                      Ngalau, Balai Panjang,<br />
+                      Kec. Payakumbuh Selatan,<br />
+                      Kota Payakumbuh, Sumatera Barat 26226
                     </p>
                   </div>
                 </div>
@@ -468,7 +539,7 @@ const Home = () => {
               className="bg-cream rounded-3xl overflow-hidden shadow-lg h-96"
             >
               <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3989.777485343092!2d100.6071958!3d-0.2592255!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2fd54ad839d1b4a1%3A0x4d0f09023da507c5!2sRnw%20Sewa%20Bus%20Pariwisata!5e0!3m2!1sen!2sid!4v1779357596271!5m2!1sen!2sid"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3989.7774884935643!2d100.6072021!3d-0.2592155!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2fd54bcf7d9e2199%3A0x38a4e8acef7a94f7!2sRN%20Donat!5e0!3m2!1sen!2sid!4v1780481999680!5m2!1sen!2sid"
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}
@@ -484,6 +555,30 @@ const Home = () => {
       <Footer />
       <WhatsAppButton />
       <PushNotification />
+
+      {/* Floating WhatsApp CTA - Enhanced version */}
+      <FloatingCTA
+        text="Chat WhatsApp"
+        icon={FiMessageCircle}
+        href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent('Halo kak, saya ingin memesan donat RN Donat.')}`}
+        position="bottom-right"
+        variant="whatsapp"
+        pulse={true}
+      />
+
+      {/* Sticky CTA Bar for Mobile */}
+      <StickyCTABar
+        primaryText="Order Sekarang"
+        primaryAction={() => {
+          const message = encodeURIComponent('Halo kak, saya ingin memesan donat RN Donat.');
+          window.open(`https://wa.me/${WA_NUMBER}?text=${message}`, '_blank');
+        }}
+        secondaryText="Lihat Menu"
+        secondaryAction={() => {
+          document.getElementById('menu')?.scrollIntoView({ behavior: 'smooth' });
+        }}
+        show={showStickyCTA && storeIsOpen}
+      />
     </div>
   );
 };

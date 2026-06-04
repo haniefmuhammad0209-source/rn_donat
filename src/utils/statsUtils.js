@@ -1,112 +1,115 @@
 /**
- * Pure utility functions for admin dashboard statistics.
- * No Firebase imports — all functions are pure.
+ * Pure calculation functions for dashboard statistics
+ * No side effects, no Firebase imports - easy to test and memoize
  */
 
-const PAID_STATUSES = ['paid', 'completed'];
-
 /**
- * Get a Date object from a Firestore Timestamp or Date or ISO string.
- * @param {*} value
- * @returns {Date|null}
- */
-function toDate(value) {
-  if (!value) return null;
-  if (typeof value.toDate === 'function') return value.toDate();
-  if (value instanceof Date) return value;
-  const d = new Date(value);
-  return isNaN(d.getTime()) ? null : d;
-}
-
-/**
- * Calculate today's stats from orders array.
- * @param {Array} orders
+ * Kalkulasi statistik hari ini
+ * @param {Array} orders - daftar semua orders
  * @returns {{ todayRevenue: number, todayOrderCount: number }}
  */
 export function calculateTodayStats(orders) {
-  const now = new Date();
-  const todayStr = now.toDateString();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
   let todayRevenue = 0;
   let todayOrderCount = 0;
 
-  for (const o of orders) {
-    const d = toDate(o.createdAt);
-    if (!d) continue;
-    if (d.toDateString() === todayStr) {
+  orders.forEach((order) => {
+    if (!order.createdAt) return;
+
+    const orderDate = order.createdAt.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
+    
+    if (orderDate >= today && orderDate < tomorrow) {
       todayOrderCount++;
-      if (PAID_STATUSES.includes(o.status)) {
-        todayRevenue += o.totalPrice || 0;
+      // Revenue hanya dari paid/completed
+      if (order.status === 'paid' || order.status === 'completed') {
+        todayRevenue += order.totalPrice || 0;
       }
     }
-  }
+  });
 
   return { todayRevenue, todayOrderCount };
 }
 
 /**
- * Calculate this month's revenue from orders array.
- * @param {Array} orders
+ * Kalkulasi statistik bulan ini
+ * @param {Array} orders - daftar semua orders
  * @returns {{ monthRevenue: number }}
  */
 export function calculateMonthStats(orders) {
   const now = new Date();
-  const thisMonth = now.getMonth();
-  const thisYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
   let monthRevenue = 0;
 
-  for (const o of orders) {
-    const d = toDate(o.createdAt);
-    if (!d) continue;
-    if (d.getMonth() === thisMonth && d.getFullYear() === thisYear) {
-      if (PAID_STATUSES.includes(o.status)) {
-        monthRevenue += o.totalPrice || 0;
+  orders.forEach((order) => {
+    if (!order.createdAt) return;
+
+    const orderDate = order.createdAt.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
+    
+    if (orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear) {
+      // Revenue hanya dari paid/completed
+      if (order.status === 'paid' || order.status === 'completed') {
+        monthRevenue += order.totalPrice || 0;
       }
     }
-  }
+  });
 
   return { monthRevenue };
 }
 
 /**
- * Get the best selling product name from orders.
- * Only considers paid/completed orders.
- * @param {Array} orders
- * @returns {string|null}
+ * Dapatkan produk terlaris berdasarkan total quantity
+ * @param {Array} orders - daftar semua orders
+ * @returns {string|null} - nama produk terlaris, atau null jika tidak ada
  */
 export function getBestSellingProduct(orders) {
-  const tally = new Map();
+  const productCounts = {};
 
-  for (const o of orders) {
-    if (!PAID_STATUSES.includes(o.status)) continue;
-    for (const item of (o.items || [])) {
-      const name = item.productName || item.product?.name || '';
-      if (!name) continue;
-      tally.set(name, (tally.get(name) || 0) + (item.quantity || 1));
+  orders.forEach((order) => {
+    // Hanya hitung dari paid/completed
+    if (order.status !== 'paid' && order.status !== 'completed') return;
+    
+    if (order.items && Array.isArray(order.items)) {
+      order.items.forEach((item) => {
+        const name = item.name || item.productName || 'Unknown';
+        const quantity = item.quantity || 0;
+        productCounts[name] = (productCounts[name] || 0) + quantity;
+      });
     }
-  }
+  });
 
-  if (tally.size === 0) return null;
+  // Find product dengan quantity tertinggi
+  let bestProduct = null;
+  let maxQuantity = 0;
 
-  let best = null;
-  let bestQty = 0;
-  for (const [name, qty] of tally) {
-    if (qty > bestQty) {
-      bestQty = qty;
-      best = name;
+  Object.entries(productCounts).forEach(([name, count]) => {
+    if (count > maxQuantity) {
+      maxQuantity = count;
+      bestProduct = name;
     }
-  }
-  return best;
+  });
+
+  return bestProduct;
 }
 
 /**
- * Count unique customers by phone number.
- * @param {Array} orders
- * @returns {number}
+ * Hitung jumlah pelanggan unik
+ * @param {Array} orders - daftar semua orders
+ * @returns {number} - jumlah customerPhone unik yang tidak null
  */
 export function countUniqueCustomers(orders) {
-  const phones = new Set();
-  for (const o of orders) {
-    if (o.customerPhone) phones.add(o.customerPhone);
-  }
-  return phones.size;
+  const uniquePhones = new Set();
+
+  orders.forEach((order) => {
+    if (order.customerPhone) {
+      uniquePhones.add(order.customerPhone);
+    }
+  });
+
+  return uniquePhones.size;
 }

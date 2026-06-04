@@ -6,7 +6,8 @@ import { useCart } from '../context/CartContext';
 import { TOPPINGS, TOPPING_EMOJI, DONAT_PER_BOX } from '../utils/constants';
 import { formatRupiah } from '../utils/format';
 import PaymentModal from './PaymentModal';
-import useStockStatus from '../hooks/useStockStatus';
+import { useStockStatus } from '../hooks/useStockStatus';
+import { TapFeedback, NumberPop, SuccessBadge, Shake } from './MicroInteractions';
 
 const initToppings = () => Object.fromEntries(TOPPINGS.map((t) => [t, 0]));
 
@@ -18,6 +19,7 @@ const ProductCard = memo(({ product, storeIsOpen = true, nextOpenText = '' }) =>
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState('');
   const [addedToCart, setAddedToCart] = useState(false);
+  const [shake, setShake] = useState(false);
   const { addItem, setIsOpen: openCart } = useCart();
   const { stock: currentStock, loading: stockLoading } = useStockStatus();
 
@@ -31,7 +33,12 @@ const ProductCard = memo(({ product, storeIsOpen = true, nextOpenText = '' }) =>
     setToppingCounts((prev) => {
       const next = prev[topping] + delta;
       if (next < 0) return prev;
-      if (delta > 0 && totalToppingSelected >= DONAT_PER_BOX) return prev;
+      if (delta > 0 && totalToppingSelected >= DONAT_PER_BOX) {
+        // Shake animation when limit reached
+        setShake(true);
+        setTimeout(() => setShake(false), 500);
+        return prev;
+      }
       return { ...prev, [topping]: next };
     });
   };
@@ -208,21 +215,31 @@ const ProductCard = memo(({ product, storeIsOpen = true, nextOpenText = '' }) =>
                   <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Jumlah Kotak</p>
                   <div className="flex items-center justify-between bg-cream dark:bg-gray-700 rounded-2xl p-4">
                     <div>
-                      <div className="font-bold text-chocolate">{quantity} kotak</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">{totalDonat} donat · {formatRupiah(totalPrice)}</div>
+                      <div className="font-bold text-chocolate dark:text-pastel-pink">
+                        <NumberPop value={quantity} /> kotak
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        <NumberPop value={totalDonat} /> donat · {formatRupiah(totalPrice)}
+                      </div>
                     </div>
                     <div className="flex items-center space-x-3">
-                      <motion.button type="button" onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                        whileTap={{ scale: 0.9 }} disabled={quantity <= 1}
-                        className="w-9 h-9 bg-white dark:bg-gray-600 rounded-full shadow flex items-center justify-center text-chocolate hover:bg-chocolate hover:text-white transition-colors disabled:opacity-40">
-                        <FiMinus className="w-4 h-4" />
-                      </motion.button>
-                      <span className="w-6 text-center font-bold text-chocolate text-lg">{quantity}</span>
-                      <motion.button type="button" onClick={() => setQuantity((q) => Math.min(20, q + 1))}
-                        whileTap={{ scale: 0.9 }} disabled={quantity >= 20}
-                        className="w-9 h-9 bg-white dark:bg-gray-600 rounded-full shadow flex items-center justify-center text-chocolate hover:bg-chocolate hover:text-white transition-colors disabled:opacity-40">
-                        <FiPlus className="w-4 h-4" />
-                      </motion.button>
+                      <TapFeedback>
+                        <motion.button type="button" onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                          whileHover={{ scale: 1.1 }} disabled={quantity <= 1}
+                          className="w-9 h-9 bg-white dark:bg-gray-600 rounded-full shadow flex items-center justify-center text-chocolate dark:text-white hover:bg-chocolate hover:text-white transition-colors disabled:opacity-40">
+                          <FiMinus className="w-4 h-4" />
+                        </motion.button>
+                      </TapFeedback>
+                      <span className="w-6 text-center font-bold text-chocolate dark:text-white text-lg">
+                        <NumberPop value={quantity} />
+                      </span>
+                      <TapFeedback>
+                        <motion.button type="button" onClick={() => setQuantity((q) => Math.min(20, q + 1))}
+                          whileHover={{ scale: 1.1 }} disabled={quantity >= 20}
+                          className="w-9 h-9 bg-white dark:bg-gray-600 rounded-full shadow flex items-center justify-center text-chocolate dark:text-white hover:bg-chocolate hover:text-white transition-colors disabled:opacity-40">
+                          <FiPlus className="w-4 h-4" />
+                        </motion.button>
+                      </TapFeedback>
                     </div>
                   </div>
                 </div>
@@ -263,38 +280,46 @@ const ProductCard = memo(({ product, storeIsOpen = true, nextOpenText = '' }) =>
                               <span className="font-medium text-sm text-gray-700 dark:text-gray-300">{topping}</span>
                             </div>
                             <div className="flex items-center space-x-2">
-                              <motion.button type="button" onClick={() => adjustTopping(topping, -1)} disabled={count === 0}
-                                whileTap={{ scale: 0.85 }}
-                                className="w-7 h-7 rounded-full bg-white dark:bg-gray-600 shadow border border-gray-200 dark:border-gray-500 flex items-center justify-center text-chocolate disabled:opacity-30 hover:bg-chocolate hover:text-white transition-colors">
-                                <FiMinus className="w-3 h-3" />
-                              </motion.button>
-                              <span className={`w-6 text-center font-bold text-sm ${count > 0 ? 'text-chocolate' : 'text-gray-300'}`}>{count}</span>
-                              <motion.button type="button" onClick={() => adjustTopping(topping, 1)} disabled={!canAdd}
-                                whileTap={{ scale: 0.85 }}
-                                className="w-7 h-7 rounded-full bg-white dark:bg-gray-600 shadow border border-gray-200 dark:border-gray-500 flex items-center justify-center text-chocolate disabled:opacity-30 hover:bg-chocolate hover:text-white transition-colors">
-                                <FiPlus className="w-3 h-3" />
-                              </motion.button>
+                              <TapFeedback>
+                                <motion.button type="button" onClick={() => adjustTopping(topping, -1)} disabled={count === 0}
+                                  whileHover={{ scale: 1.1 }}
+                                  className="w-7 h-7 rounded-full bg-white dark:bg-gray-600 shadow border border-gray-200 dark:border-gray-500 flex items-center justify-center text-chocolate dark:text-white disabled:opacity-30 hover:bg-chocolate hover:text-white transition-colors">
+                                  <FiMinus className="w-3 h-3" />
+                                </motion.button>
+                              </TapFeedback>
+                              <span className={`w-6 text-center font-bold text-sm ${count > 0 ? 'text-chocolate dark:text-pastel-pink' : 'text-gray-300 dark:text-gray-600'}`}>
+                                <NumberPop value={count} />
+                              </span>
+                              <TapFeedback>
+                                <motion.button type="button" onClick={() => adjustTopping(topping, 1)} disabled={!canAdd}
+                                  whileHover={{ scale: 1.1 }}
+                                  className="w-7 h-7 rounded-full bg-white dark:bg-gray-600 shadow border border-gray-200 dark:border-gray-500 flex items-center justify-center text-chocolate dark:text-white disabled:opacity-30 hover:bg-chocolate hover:text-white transition-colors">
+                                  <FiPlus className="w-3 h-3" />
+                                </motion.button>
+                              </TapFeedback>
                             </div>
                           </div>
                         );
                       })}
                     </div>
                     {/* Progress bar */}
-                    <div className="mt-3">
-                      <div className="flex justify-between text-xs text-gray-400 mb-1">
-                        <span>Total topping</span>
-                        <span className={totalToppingSelected === DONAT_PER_BOX ? 'text-green-500 font-semibold' : ''}>
-                          {totalToppingSelected}/{DONAT_PER_BOX}
-                        </span>
+                    <Shake trigger={shake}>
+                      <div className="mt-3">
+                        <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mb-1">
+                          <span>Total topping</span>
+                          <span className={totalToppingSelected === DONAT_PER_BOX ? 'text-green-500 dark:text-green-400 font-semibold' : ''}>
+                            <NumberPop value={totalToppingSelected} />/{DONAT_PER_BOX}
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-100 dark:bg-gray-600 rounded-full h-2">
+                          <motion.div
+                            className={`h-2 rounded-full ${totalToppingSelected === DONAT_PER_BOX ? 'bg-green-500' : 'bg-chocolate'}`}
+                            animate={{ width: `${(totalToppingSelected / DONAT_PER_BOX) * 100}%` }}
+                            transition={{ duration: 0.3 }}
+                          />
+                        </div>
                       </div>
-                      <div className="w-full bg-gray-100 dark:bg-gray-600 rounded-full h-2">
-                        <motion.div
-                          className={`h-2 rounded-full ${totalToppingSelected === DONAT_PER_BOX ? 'bg-green-500' : 'bg-chocolate'}`}
-                          animate={{ width: `${(totalToppingSelected / DONAT_PER_BOX) * 100}%` }}
-                          transition={{ duration: 0.3 }}
-                        />
-                      </div>
-                    </div>
+                    </Shake>
                   </div>
                 )}
 

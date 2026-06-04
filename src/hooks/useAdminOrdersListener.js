@@ -1,42 +1,45 @@
 import { useEffect, useRef } from 'react';
-import { collection, orderBy, query, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 
 /**
- * Listen to new orders and call onNewOrder only for genuinely new ones.
- * Uses useRef to track seen order IDs — does NOT trigger on initial load.
- *
- * @param {{ onNewOrder: (order: object) => void }} params
+ * Hook untuk mendeteksi order baru dan trigger callback
+ * @param {{ onNewOrder: (order) => void }} options
  */
-const useAdminOrdersListener = ({ onNewOrder }) => {
-  const seenIdsRef = useRef(null); // null = not yet initialised
+export const useAdminOrdersListener = ({ onNewOrder }) => {
+  const lastSeenOrderIds = useRef(new Set());
+  const isInitialized = useRef(false);
 
   useEffect(() => {
     const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
 
-    const unsub = onSnapshot(q, (snap) => {
-      const currentIds = new Set(snap.docs.map((d) => d.id));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const orders = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
 
-      if (seenIdsRef.current === null) {
-        // First snapshot — just record existing IDs, don't notify
-        seenIdsRef.current = currentIds;
+      // Pertama kali: inisialisasi dengan semua order yang sudah ada
+      if (!isInitialized.current) {
+        orders.forEach((order) => {
+          lastSeenOrderIds.current.add(order.id);
+        });
+        isInitialized.current = true;
         return;
       }
 
-      // Find orders that weren't in the previous snapshot
-      for (const d of snap.docs) {
-        if (!seenIdsRef.current.has(d.id)) {
-          const order = { id: d.id, ...d.data() };
+      // Setelah inisialisasi: deteksi order baru
+      orders.forEach((order) => {
+        if (!lastSeenOrderIds.current.has(order.id)) {
+          lastSeenOrderIds.current.add(order.id);
+          // Trigger callback untuk order baru
           onNewOrder(order);
         }
-      }
-
-      // Update seen IDs
-      seenIdsRef.current = currentIds;
+      });
     });
 
-    return () => unsub();
-  }, []); // intentionally empty — onNewOrder is called via closure; stable ref
+    return () => {
+      unsubscribe();
+    };
+  }, [onNewOrder]);
 };
-
-export default useAdminOrdersListener;

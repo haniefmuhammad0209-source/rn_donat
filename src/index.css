@@ -5,19 +5,33 @@
 @tailwind utilities;
 
 @layer base {
+  /* Safe area insets for notched devices */
+  :root {
+    --sat: env(safe-area-inset-top, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+  }
+
   body {
     @apply bg-cream dark:bg-gray-900 text-gray-800 dark:text-gray-100;
     font-feature-settings: 'kern' 1, 'liga' 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Prevent horizontal scroll on mobile */
+    overflow-x: hidden;
   }
 
   html {
     scroll-behavior: smooth;
+    /* Prevent zoom on input focus (iOS) */
+    -webkit-text-size-adjust: 100%;
   }
 
   * {
     @apply transition-colors duration-200;
+    /* Prevent tap highlight on mobile */
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* Scrollbar custom */
@@ -115,5 +129,144 @@
   /* Glow effect */
   .glow-chocolate {
     box-shadow: 0 0 20px rgba(139, 69, 19, 0.3);
+  }
+
+  /* Mobile-specific utilities */
+  .touch-action-none { touch-action: none; }
+  .touch-manipulation { touch-action: manipulation; }
+  .touch-pan-y { touch-action: pan-y; }
+  .touch-pan-x { touch-action: pan-x; }
+  
+  /* Safe area padding */
+  .pt-safe { padding-top: var(--sat); }
+  .pr-safe { padding-right: var(--sar); }
+  .pb-safe { padding-bottom: var(--sab); }
+  .pl-safe { padding-left: var(--sal); }
+  
+  /* Safe area margin */
+  .mt-safe { margin-top: var(--sat); }
+  .mr-safe { margin-right: var(--sar); }
+  .mb-safe { margin-bottom: var(--sab); }
+  .ml-safe { margin-left: var(--sal); }
+  
+  /* Prevent text selection (for buttons, etc) */
+  .no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  /* Better mobile scrolling */
+  .scroll-smooth {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  /* Hide scrollbar but keep functionality */
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Prevent pull-to-refresh on mobile */
+  .no-pull-refresh {
+    overscroll-behavior-y: contain;
+  }
+  
+  /* Better mobile tap targets (min 44x44px for iOS) */
+  .tap-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  /* Aspect ratio utilities for images */
+  .aspect-square { aspect-ratio: 1 / 1; }
+  .aspect-video { aspect-ratio: 16 / 9; }
+  .aspect-photo { aspect-ratio: 4 / 3; }
+}
+
+/* Mobile-specific media queries */
+@media (max-width: 640px) {
+  /* Larger text on mobile for readability */
+  body {
+    font-size: 16px; /* Prevents zoom on input focus in iOS */
+  }
+  
+  /* Smaller headings on mobile */
+  h1 { @apply text-3xl; }
+  h2 { @apply text-2xl; }
+  h3 { @apply text-xl; }
+  
+  /* Tighter spacing on mobile */
+  .container {
+    @apply px-4;
+  }
+  
+  /* Full-width modals on mobile */
+  .modal-content {
+    @apply w-full h-full rounded-none;
+  }
+}
+
+/* Tablet-specific (640px - 1024px) */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .container {
+    @apply px-6;
+  }
+}
+
+/* Desktop (1024px+) */
+@media (min-width: 1024px) {
+  /* Show hover effects only on desktop */
+  .hover-desktop-only:hover {
+    transform: translateY(-4px);
+  }
+}
+
+/* Landscape mobile */
+@media (max-height: 500px) and (orientation: landscape) {
+  /* Reduce vertical spacing in landscape */
+  .py-section {
+    @apply py-8;
+  }
+}
+
+/* High DPI displays (Retina) */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* Use higher quality images */
+  img {
+    image-rendering: -webkit-optimize-contrast;
+  }
+}
+
+/* Dark mode with reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* iOS-specific fixes */
+@supports (-webkit-touch-callout: none) {
+  /* Fix for iOS Safari address bar */
+  .full-height-mobile {
+    min-height: -webkit-fill-available;
+  }
+  
+  /* Fix for iOS input zoom */
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="tel"],
+  textarea {
+    font-size: 16px;
   }
 }

@@ -182,7 +182,7 @@ const Testimoni = () => {
                 </button>
               </div>
               <motion.button onClick={() => setShowForm(true)} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                className="bg-chocolate text-white px-8 py-4 rounded-full font-semibold hover:bg-dark-chocolate transition-colors inline-flex items-center space-x-2">
+                className="bg-chocolate dark:bg-caramel text-white px-8 py-4 rounded-full font-semibold hover:bg-dark-chocolate dark:hover:bg-chocolate transition-colors inline-flex items-center space-x-2">
                 <FiMessageSquare className="w-5 h-5" />
                 <span>Tulis Testimoni</span>
               </motion.button>
@@ -197,20 +197,20 @@ const Testimoni = () => {
                   <div className="flex items-center space-x-3">
                     <Avatar src={user.photoURL} name={user.displayName} size="sm" />
                     <div>
-                      <p className="font-semibold text-chocolate text-sm">{user.displayName}</p>
-                      <p className="text-xs text-gray-400">{user.email}</p>
+                      <p className="font-semibold text-chocolate dark:text-pastel-pink text-sm">{user.displayName}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">{user.email}</p>
                     </div>
                   </div>
                   <button type="button" onClick={() => { setShowForm(false); setErrors({}); }}
-                    className="w-8 h-8 bg-chocolate/10 rounded-full flex items-center justify-center hover:bg-chocolate/20 transition-colors">
-                    <FiX className="w-4 h-4 text-chocolate" />
+                    className="w-8 h-8 bg-chocolate/10 dark:bg-gray-700 rounded-full flex items-center justify-center hover:bg-chocolate/20 dark:hover:bg-gray-600 transition-colors">
+                    <FiX className="w-4 h-4 text-chocolate dark:text-pastel-pink" />
                   </button>
                 </div>
                 <form onSubmit={handleSubmit} noValidate className="space-y-5">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Rating</label>
                     <StarPicker value={form.rating} onChange={(r) => { setForm({ ...form, rating: r }); setErrors({ ...errors, rating: '' }); }} />
-                    {errors.rating && <p className="text-red-500 text-xs mt-1">{errors.rating}</p>}
+                    {errors.rating && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.rating}</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Testimoni</label>
@@ -221,12 +221,12 @@ const Testimoni = () => {
                       className={`w-full px-4 py-3 rounded-xl border-2 bg-white dark:bg-gray-700 dark:text-white outline-none transition-colors resize-none ${errors.text ? 'border-red-400' : 'border-gray-200 dark:border-gray-600 focus:border-chocolate'}`}
                     />
                     <div className="flex justify-between items-center mt-1">
-                      {errors.text ? <p className="text-red-500 text-xs">{errors.text}</p> : <span />}
-                      <span className="text-xs text-gray-400">{form.text.length} karakter</span>
+                      {errors.text ? <p className="text-red-500 dark:text-red-400 text-xs">{errors.text}</p> : <span />}
+                      <span className="text-xs text-gray-400 dark:text-gray-500">{form.text.length} karakter</span>
                     </div>
                   </div>
                   <motion.button type="submit" disabled={submitting} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                    className="w-full bg-chocolate text-white py-4 rounded-full font-semibold hover:bg-dark-chocolate transition-colors flex items-center justify-center space-x-2 disabled:opacity-60">
+                    className="w-full bg-chocolate dark:bg-caramel text-white py-4 rounded-full font-semibold hover:bg-dark-chocolate dark:hover:bg-chocolate transition-colors flex items-center justify-center space-x-2 disabled:opacity-60">
                     {submitting
                       ? <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
                       : <FiSend className="w-4 h-4" />}

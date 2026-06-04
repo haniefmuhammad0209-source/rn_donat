@@ -1,88 +1,86 @@
 /**
- * Pure utility functions for customer history.
- * No Firebase imports.
+ * Pure functions for customer list and history computation
+ * No side effects - easy to test and memoize
  */
 
 /**
- * Convert a Firestore Timestamp, Date, or ISO string to a Date.
- * @param {*} value
- * @returns {Date|null}
- */
-function toDate(value) {
-  if (!value) return null;
-  if (typeof value.toDate === 'function') return value.toDate();
-  if (value instanceof Date) return value;
-  const d = new Date(value);
-  return isNaN(d.getTime()) ? null : d;
-}
-
-/**
- * Build list of unique customers from orders, sorted descending by totalSpent.
- *
- * @param {Array} orders
- * @returns {Array<{ phone: string, name: string, orderCount: number, totalSpent: number, lastOrder: Date|null }>}
+ * Compute daftar pelanggan unik dengan statistik
+ * @param {Array} orders - daftar semua orders
+ * @returns {Array<{ phone: string, name: string, orderCount: number, totalSpent: number, lastOrder: Date }>}
+ *          - diurutkan descending by totalSpent
  */
 export function computeCustomerList(orders) {
-  const map = new Map();
+  const customerMap = {};
 
-  for (const o of orders) {
-    if (!o.customerPhone) continue;
-    const phone = o.customerPhone;
+  orders.forEach((order) => {
+    const phone = order.customerPhone;
+    if (!phone) return;
 
-    if (!map.has(phone)) {
-      map.set(phone, {
+    const name = order.customerName || 'Unknown';
+    const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt || Date.now());
+    const price = order.totalPrice || 0;
+
+    if (!customerMap[phone]) {
+      customerMap[phone] = {
         phone,
-        name: o.customerName || 'Pelanggan',
+        name,
         orderCount: 0,
         totalSpent: 0,
-        lastOrder: null,
-      });
+        lastOrder: orderDate,
+      };
     }
 
-    const c = map.get(phone);
-    // Use most recent non-empty name
-    if (o.customerName && o.customerName !== 'Pelanggan') {
-      c.name = o.customerName;
+    customerMap[phone].orderCount++;
+    customerMap[phone].totalSpent += price;
+    
+    // Update last order jika lebih baru
+    if (orderDate > customerMap[phone].lastOrder) {
+      customerMap[phone].lastOrder = orderDate;
     }
-    c.orderCount++;
-    c.totalSpent += o.totalPrice || 0;
-
-    const orderDate = toDate(o.createdAt);
-    if (orderDate && (!c.lastOrder || orderDate > c.lastOrder)) {
-      c.lastOrder = orderDate;
+    
+    // Update nama jika berbeda (ambil yang terbaru)
+    if (orderDate >= customerMap[phone].lastOrder) {
+      customerMap[phone].name = name;
     }
-  }
+  });
 
-  return Array.from(map.values()).sort((a, b) => b.totalSpent - a.totalSpent);
+  // Convert ke array dan sort descending by totalSpent
+  const customerList = Object.values(customerMap);
+  customerList.sort((a, b) => b.totalSpent - a.totalSpent);
+
+  return customerList;
 }
 
 /**
- * Get order history for a specific customer phone number.
- *
- * @param {string} phone
- * @param {Array} orders
- * @returns {{
- *   orders: Array,
- *   orderCount: number,
- *   totalSpent: number,
- *   avgOrderValue: number,
- * }}
+ * Dapatkan riwayat order untuk satu pelanggan
+ * @param {string} phone - nomor telepon pelanggan
+ * @param {Array} orders - daftar semua orders
+ * @returns {{ orders: Array, orderCount: number, totalSpent: number, avgOrderValue: number }}
+ *          - orders diurutkan descending by createdAt
  */
 export function getCustomerHistory(phone, orders) {
-  const customerOrders = orders
-    .filter((o) => o.customerPhone === phone)
-    .slice()
-    .sort((a, b) => {
-      const da = toDate(a.createdAt);
-      const db_ = toDate(b.createdAt);
-      if (!da && !db_) return 0;
-      if (!da) return 1;
-      if (!db_) return -1;
-      return db_ - da; // descending
-    });
+  if (!phone) {
+    return {
+      orders: [],
+      orderCount: 0,
+      totalSpent: 0,
+      avgOrderValue: 0,
+    };
+  }
 
+  // Filter orders untuk pelanggan ini
+  const customerOrders = orders.filter((order) => order.customerPhone === phone);
+
+  // Sort descending by createdAt
+  customerOrders.sort((a, b) => {
+    const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+    const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+    return dateB - dateA; // descending
+  });
+
+  // Compute statistics
   const orderCount = customerOrders.length;
-  const totalSpent = customerOrders.reduce((sum, o) => sum + (o.totalPrice || 0), 0);
+  const totalSpent = customerOrders.reduce((sum, order) => sum + (order.totalPrice || 0), 0);
   const avgOrderValue = orderCount > 0 ? totalSpent / orderCount : 0;
 
   return {

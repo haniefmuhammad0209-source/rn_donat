@@ -55,9 +55,9 @@ const Footer = memo(() => (
             <li className="flex items-start space-x-3">
               <FiMapPin className="w-5 h-5 mt-1 text-pastel-pink flex-shrink-0" />
               <span className="text-gray-300">
-                Jl. Raya Bukittinggi - Payakumbuh No.233<br />
-                Pakan Sinayan, Kec. Payakumbuh Bar.<br />
-                Kota Payakumbuh, Sumatera Barat 26224
+                Ngalau, Balai Panjang<br />
+                Kec. Payakumbuh Selatan<br />
+                Kota Payakumbuh, Sumatera Barat 26226
               </span>
             </li>
             <li className="flex items-center space-x-3">

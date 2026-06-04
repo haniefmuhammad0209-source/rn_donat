@@ -51,10 +51,10 @@ service cloud.firestore {
     // Stock — PENTING: Collection untuk stock donat polos
     match /stock/{docId} {
       allow read: if true;
-      // Admin bisa create, update, delete (semua operasi write)
+      // Admin bisa semua operasi write (create, setStock, setThreshold)
       allow write: if isAdmin();
-      // Update (reduceStock) diizinkan untuk authenticated users
-      allow update: if request.auth != null;
+      // Allow update untuk unauthenticated (untuk reduceStock saat customer order)
+      allow update: if true;
     }
   }
 }

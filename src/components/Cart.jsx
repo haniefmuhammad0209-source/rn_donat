@@ -4,6 +4,7 @@ import { useState, memo } from 'react';
 import { useCart } from '../context/CartContext';
 import { formatRupiah } from '../utils/format';
 import PaymentModal from './PaymentModal';
+import { EmptyCart } from './EmptyState';
 
 const CartItem = memo(({ item }) => {
   const { updateQuantity, removeItem } = useCart();
@@ -29,31 +30,31 @@ const CartItem = memo(({ item }) => {
         <h4 className="font-semibold text-gray-800 dark:text-white text-sm">{item.product.name}</h4>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">Topping: {toppingText}</p>
         {item.notes && (
-          <p className="text-xs text-chocolate mt-0.5 italic">"{item.notes}"</p>
+          <p className="text-xs text-chocolate dark:text-pastel-pink mt-0.5 italic">"{item.notes}"</p>
         )}
         <div className="flex items-center justify-between mt-2">
           <div className="flex items-center space-x-2">
             <button
               onClick={() => updateQuantity(item.key, item.quantity - 1)}
-              className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center hover:bg-chocolate hover:text-white transition-colors"
+              className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-700 dark:text-gray-300 hover:bg-chocolate hover:text-white transition-colors"
             >
               <FiMinus className="w-3 h-3" />
             </button>
             <span className="text-sm font-bold text-gray-800 dark:text-white w-4 text-center">{item.quantity}</span>
             <button
               onClick={() => updateQuantity(item.key, item.quantity + 1)}
-              className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center hover:bg-chocolate hover:text-white transition-colors"
+              className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-700 dark:text-gray-300 hover:bg-chocolate hover:text-white transition-colors"
             >
               <FiPlus className="w-3 h-3" />
             </button>
           </div>
           <div className="flex items-center space-x-2">
-            <span className="text-sm font-bold text-chocolate">
+            <span className="text-sm font-bold text-chocolate dark:text-rose-gold">
               {formatRupiah(item.product.price * item.quantity)}
             </span>
             <button
               onClick={() => removeItem(item.key)}
-              className="w-6 h-6 rounded-full bg-red-50 text-red-400 flex items-center justify-center hover:bg-red-100 transition-colors"
+              className="w-6 h-6 rounded-full bg-red-50 dark:bg-red-900/30 text-red-400 dark:text-red-400 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
             >
               <FiTrash2 className="w-3 h-3" />
             </button>
@@ -108,12 +109,12 @@ const Cart = () => {
             {/* Header */}
             <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700">
               <div className="flex items-center space-x-2">
-                <FiShoppingBag className="w-5 h-5 text-chocolate" />
+                <FiShoppingBag className="w-5 h-5 text-chocolate dark:text-pastel-pink" />
                 <h2 className="font-bold text-gray-800 dark:text-white font-elegant text-lg">
                   Keranjang
                 </h2>
                 {totalItems > 0 && (
-                  <span className="bg-chocolate text-white text-xs px-2 py-0.5 rounded-full font-medium">
+                  <span className="bg-chocolate dark:bg-caramel text-white text-xs px-2 py-0.5 rounded-full font-medium">
                     {totalItems}
                   </span>
                 )}
@@ -129,22 +130,18 @@ const Cart = () => {
             {/* Items */}
             <div className="flex-1 overflow-y-auto px-5">
               {items.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center">
-                  <div className="text-6xl mb-4">🍩</div>
-                  <p className="text-gray-500 dark:text-gray-400 font-medium">Keranjang masih kosong</p>
-                  <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Yuk pilih donat favoritmu!</p>
-                  <button
-                    onClick={() => {
+                <EmptyCart 
+                  action={{
+                    label: 'Lihat Menu',
+                    icon: '🍩',
+                    onClick: () => {
                       setIsOpen(false);
                       setTimeout(() => {
                         document.getElementById('menu')?.scrollIntoView({ behavior: 'smooth' });
                       }, 300);
-                    }}
-                    className="mt-6 bg-chocolate text-white px-6 py-2.5 rounded-full text-sm font-medium hover:bg-dark-chocolate transition-colors"
-                  >
-                    Lihat Menu
-                  </button>
-                </div>
+                    }
+                  }}
+                />
               ) : (
                 <AnimatePresence>
                   {items.map((item) => (
@@ -159,20 +156,20 @@ const Cart = () => {
               <div className="p-5 border-t border-gray-100 dark:border-gray-700 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600 dark:text-gray-400 font-medium">Total</span>
-                  <span className="text-xl font-bold text-chocolate">{formatRupiah(totalPrice)}</span>
+                  <span className="text-xl font-bold text-chocolate dark:text-rose-gold">{formatRupiah(totalPrice)}</span>
                 </div>
                 <motion.button
                   onClick={handleCheckout}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full bg-chocolate hover:bg-dark-chocolate text-white py-4 rounded-full font-semibold flex items-center justify-center space-x-2 transition-colors"
+                  className="w-full bg-chocolate dark:bg-caramel hover:bg-dark-chocolate dark:hover:bg-chocolate text-white py-4 rounded-full font-semibold flex items-center justify-center space-x-2 transition-colors"
                 >
                   <FiShoppingBag className="w-5 h-5" />
                   <span>Checkout ({totalItems} kotak)</span>
                 </motion.button>
                 <button
                   onClick={clearCart}
-                  className="w-full text-sm text-gray-400 hover:text-red-500 transition-colors py-1"
+                  className="w-full text-sm text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors py-1"
                 >
                   Kosongkan keranjang
                 </button>

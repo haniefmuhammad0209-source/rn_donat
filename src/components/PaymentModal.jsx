@@ -172,7 +172,7 @@ const PaymentModal = ({ isOpen, onClose, items, totalPrice, totalBoxes }) => {
                     <div className={`text-sm font-semibold ${paymentMethod === val ? 'text-chocolate' : 'text-gray-600 dark:text-gray-400'}`}>
                       {PAYMENT_METHOD_LABEL[val]}
                     </div>
-                    <div className="text-xs text-gray-400 mt-0.5">
+                    <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                       {val === PAYMENT_METHOD.QRIS ? 'Transfer via QRIS' : 'Bayar saat terima'}
                     </div>
                   </button>
@@ -197,7 +197,7 @@ const PaymentModal = ({ isOpen, onClose, items, totalPrice, totalBoxes }) => {
                           className="w-44 h-44 mx-auto rounded-2xl object-contain border-2 border-gray-100 dark:border-gray-600 shadow-md" />
                       ) : (
                         <div className="w-44 h-44 mx-auto rounded-2xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-                          <p className="text-gray-400 text-xs text-center px-4">QRIS belum dikonfigurasi admin</p>
+                          <p className="text-gray-400 dark:text-gray-500 text-xs text-center px-4">QRIS belum dikonfigurasi admin</p>
                         </div>
                       )}
                     </div>
@@ -236,7 +236,7 @@ const PaymentModal = ({ isOpen, onClose, items, totalPrice, totalBoxes }) => {
                             </AnimatePresence>
                           </div>
                         ) : (
-                          <div className="flex flex-col items-center justify-center py-6 text-gray-400">
+                          <div className="flex flex-col items-center justify-center py-6 text-gray-400 dark:text-gray-500">
                             <FiUpload className="w-8 h-8 mb-2 opacity-50" />
                             <p className="text-sm">Klik untuk upload foto bukti</p>
                             <p className="text-xs mt-0.5">JPG, PNG · Maks 5MB</p>

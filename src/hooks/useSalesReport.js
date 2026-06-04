@@ -2,59 +2,45 @@ import { useState, useMemo } from 'react';
 import { filterByDateRange, filterByMonth, groupByDay, calculateRevenue } from '../services/reportService';
 
 /**
- * State management hook for the sales report tab.
- *
- * @param {Array} orders - all orders from Firestore
- * @returns {{
- *   rows: Array,
- *   totalRevenue: number,
- *   totalOrders: number,
- *   filterMode: 'range'|'month',
- *   setFilterMode: function,
- *   startDate: string,
- *   setStartDate: function,
- *   endDate: string,
- *   setEndDate: function,
- *   selectedMonth: string,
- *   setSelectedMonth: function,
- * }}
+ * Hook untuk sales report dengan filter dan kalkulasi
+ * @param {Array} orders - daftar semua orders
+ * @returns {{ filterMode, setFilterMode, startDate, setStartDate, endDate, setEndDate, selectedMonth, setSelectedMonth, rows, totalRevenue, totalOrders }}
  */
-const useSalesReport = (orders) => {
-  const now = new Date();
-  const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const todayStr = now.toISOString().slice(0, 10);
+export const useSalesReport = (orders) => {
+  const [filterMode, setFilterMode] = useState('range'); // 'range' | 'month'
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState(''); // format "YYYY-MM"
 
-  const [filterMode, setFilterMode] = useState('month');
-  const [startDate, setStartDate] = useState(todayStr);
-  const [endDate, setEndDate] = useState(todayStr);
-  const [selectedMonth, setSelectedMonth] = useState(defaultMonth);
+  // Filter orders based on mode
+  const filteredOrders = useMemo(() => {
+    if (!orders || orders.length === 0) return [];
 
-  const rows = useMemo(() => {
-    let filtered;
-    if (filterMode === 'range') {
-      filtered = filterByDateRange(orders, new Date(startDate), new Date(endDate));
-    } else {
-      const [year, month] = selectedMonth.split('-').map(Number);
-      filtered = filterByMonth(orders, year, month - 1); // month is 1-indexed in input
+    if (filterMode === 'range' && startDate && endDate) {
+      return filterByDateRange(orders, new Date(startDate), new Date(endDate));
     }
-    return groupByDay(filtered);
+
+    if (filterMode === 'month' && selectedMonth) {
+      const [year, month] = selectedMonth.split('-');
+      return filterByMonth(orders, parseInt(year, 10), parseInt(month, 10) - 1);
+    }
+
+    return [];
   }, [orders, filterMode, startDate, endDate, selectedMonth]);
 
-  const totalRevenue = useMemo(() => calculateRevenue(
-    filterMode === 'range'
-      ? filterByDateRange(orders, new Date(startDate), new Date(endDate))
-      : (() => {
-          const [year, month] = selectedMonth.split('-').map(Number);
-          return filterByMonth(orders, year, month - 1);
-        })()
-  ), [orders, filterMode, startDate, endDate, selectedMonth]);
+  // Group by day
+  const rows = useMemo(() => {
+    return groupByDay(filteredOrders);
+  }, [filteredOrders]);
 
-  const totalOrders = rows.reduce((sum, r) => sum + r.count, 0);
+  // Calculate totals
+  const totalRevenue = useMemo(() => {
+    return calculateRevenue(filteredOrders);
+  }, [filteredOrders]);
+
+  const totalOrders = filteredOrders.length;
 
   return {
-    rows,
-    totalRevenue,
-    totalOrders,
     filterMode,
     setFilterMode,
     startDate,
@@ -63,7 +49,8 @@ const useSalesReport = (orders) => {
     setEndDate,
     selectedMonth,
     setSelectedMonth,
+    rows,
+    totalRevenue,
+    totalOrders,
   };
 };
-
-export default useSalesReport;

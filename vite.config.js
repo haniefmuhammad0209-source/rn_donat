@@ -60,16 +60,48 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
+          // Split charts library
           if (id.includes('node_modules/recharts')) return 'charts';
+          
+          // Split animation library
           if (id.includes('node_modules/framer-motion')) return 'motion';
+          
+          // Split router
           if (id.includes('node_modules/react-router-dom') || id.includes('node_modules/react-router/')) return 'router';
+          
+          // Split Firebase by feature
           if (id.includes('node_modules/firebase/analytics')) return 'firebase-analytics';
           if (id.includes('node_modules/firebase/firestore')) return 'firebase-db';
           if (id.includes('node_modules/firebase/auth')) return 'firebase-auth';
           if (id.includes('node_modules/firebase/')) return 'firebase-core';
+          
+          // Split export libraries (lazy loaded)
+          if (id.includes('node_modules/xlsx')) return 'xlsx';
+          if (id.includes('node_modules/jspdf')) return 'jspdf';
+          if (id.includes('node_modules/html2canvas')) return 'html2canvas';
+          
+          // Split React ecosystem
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+            return 'react-vendor';
+          }
+          
+          // Everything else from node_modules
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
         },
       },
     },
     chunkSizeWarningLimit: 600,
+    // Enable minification
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true, // Remove console.logs in production
+        drop_debugger: true,
+      },
+    },
+    // Enable source maps for debugging
+    sourcemap: false, // Disable in production for smaller builds
   },
 });
